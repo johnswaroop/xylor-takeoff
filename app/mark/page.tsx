@@ -823,9 +823,9 @@ export default function SVGDrawWithPanZoom() {
           >
             <Tabs defaultValue="tools" className="w-full h-full">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="tools">Tools</TabsTrigger>
+                {/* <TabsTrigger value="tools">Tools</TabsTrigger> */}
                 <TabsTrigger value="elements">Elements</TabsTrigger>
-                <TabsTrigger value="layers">Layers</TabsTrigger>
+                {/* <TabsTrigger value="layers">Layers</TabsTrigger> */}
               </TabsList>
 
               <TabsContent

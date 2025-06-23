@@ -5,49 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { UserFormData, ApiResponse } from "@/lib/types/user";
 import { User, Mail, Phone, Building, Briefcase } from "lucide-react";
 import { toast } from "sonner";
-
-// Common country codes
-const countryCodes = [
-  { code: "+1", country: "US/CA", flag: "🇺🇸" },
-  { code: "+44", country: "UK", flag: "🇬🇧" },
-  { code: "+33", country: "France", flag: "🇫🇷" },
-  { code: "+49", country: "Germany", flag: "🇩🇪" },
-  { code: "+39", country: "Italy", flag: "🇮🇹" },
-  { code: "+34", country: "Spain", flag: "🇪🇸" },
-  { code: "+31", country: "Netherlands", flag: "🇳🇱" },
-  { code: "+32", country: "Belgium", flag: "🇧🇪" },
-  { code: "+41", country: "Switzerland", flag: "🇨🇭" },
-  { code: "+43", country: "Austria", flag: "🇦🇹" },
-  { code: "+45", country: "Denmark", flag: "🇩🇰" },
-  { code: "+46", country: "Sweden", flag: "🇸🇪" },
-  { code: "+47", country: "Norway", flag: "🇳🇴" },
-  { code: "+358", country: "Finland", flag: "🇫🇮" },
-  { code: "+61", country: "Australia", flag: "🇦🇺" },
-  { code: "+64", country: "New Zealand", flag: "🇳🇿" },
-  { code: "+81", country: "Japan", flag: "🇯🇵" },
-  { code: "+82", country: "South Korea", flag: "🇰🇷" },
-  { code: "+86", country: "China", flag: "🇨🇳" },
-  { code: "+91", country: "India", flag: "🇮🇳" },
-  { code: "+65", country: "Singapore", flag: "🇸🇬" },
-  { code: "+852", country: "Hong Kong", flag: "🇭🇰" },
-  { code: "+971", country: "UAE", flag: "🇦🇪" },
-  { code: "+966", country: "Saudi Arabia", flag: "🇸🇦" },
-  { code: "+27", country: "South Africa", flag: "🇿🇦" },
-  { code: "+55", country: "Brazil", flag: "🇧🇷" },
-  { code: "+52", country: "Mexico", flag: "🇲🇽" },
-  { code: "+54", country: "Argentina", flag: "🇦🇷" },
-  { code: "manual", country: "Other", flag: "🌍" },
-];
 
 interface UserRegistrationFormProps {
   onRegistrationComplete: (userId: string) => void;
@@ -65,8 +25,7 @@ export default function UserRegistrationForm({
   });
 
   // Local state for phone input components
-  const [selectedCountryCode, setSelectedCountryCode] = useState("+1");
-  const [manualCountryCode, setManualCountryCode] = useState("");
+  const [countryCode, setCountryCode] = useState("+1");
   const [phoneNumber, setPhoneNumber] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,29 +53,13 @@ export default function UserRegistrationForm({
   };
 
   const handleCountryCodeChange = (value: string) => {
-    setSelectedCountryCode(value);
-    if (value !== "manual") {
-      setManualCountryCode("");
-      updatePhoneNumber(value, phoneNumber);
-    } else {
-      updatePhoneNumber(manualCountryCode, phoneNumber);
-    }
-  };
-
-  const handleManualCountryCodeChange = (value: string) => {
-    setManualCountryCode(value);
-    if (selectedCountryCode === "manual") {
-      updatePhoneNumber(value, phoneNumber);
-    }
+    setCountryCode(value);
+    updatePhoneNumber(value, phoneNumber);
   };
 
   const handlePhoneNumberChange = (value: string) => {
     setPhoneNumber(value);
-    const currentCountryCode =
-      selectedCountryCode === "manual"
-        ? manualCountryCode
-        : selectedCountryCode;
-    updatePhoneNumber(currentCountryCode, value);
+    updatePhoneNumber(countryCode, value);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,19 +92,11 @@ export default function UserRegistrationForm({
 
         onRegistrationComplete(data.userId);
       } else {
-        if (response.status === 409) {
-          toast.error("Email already registered", {
-            id: toastId,
-            description:
-              "An account with this email already exists. Please use a different email or contact support.",
-          });
-        } else {
-          toast.error("Registration failed", {
-            id: toastId,
-            description:
-              data.error || "Please check your information and try again.",
-          });
-        }
+        toast.error("Registration failed", {
+          id: toastId,
+          description:
+            data.error || "Please check your information and try again.",
+        });
         setError(data.error || "Registration failed");
       }
     } catch {
@@ -242,35 +177,13 @@ export default function UserRegistrationForm({
                 </Label>
                 <div className="space-y-2">
                   <div className="flex gap-2">
-                    <Select
-                      value={selectedCountryCode}
-                      onValueChange={handleCountryCodeChange}
-                    >
-                      <SelectTrigger className="w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {countryCodes.map((country) => (
-                          <SelectItem key={country.code} value={country.code}>
-                            {country.flag}{" "}
-                            {country.code !== "manual" ? country.code : ""}{" "}
-                            {country.country}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    {selectedCountryCode === "manual" && (
-                      <Input
-                        type="text"
-                        placeholder="Enter country code (e.g., +1)"
-                        value={manualCountryCode}
-                        onChange={(e) =>
-                          handleManualCountryCodeChange(e.target.value)
-                        }
-                        className="w-32"
-                      />
-                    )}
+                    <Input
+                      type="text"
+                      placeholder="Country code (e.g., +1)"
+                      value={countryCode}
+                      onChange={(e) => handleCountryCodeChange(e.target.value)}
+                      className="w-32"
+                    />
 
                     <Input
                       id="phone"

@@ -20,20 +20,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user with this email already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-
-    if (existingUser) {
-      return NextResponse.json<ApiResponse>(
-        {
-          error: "A user with this email already exists",
-          userId: existingUser._id.toString(),
-        },
-        { status: 409 }
-      );
-    }
-
-    // Create new user
+    // Create new user (allowing duplicates)
     const newUser = new User({
       name: name.trim(),
       email: email.toLowerCase().trim(),

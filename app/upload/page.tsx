@@ -311,30 +311,34 @@ export default function UploadPage() {
 
           <Card className="p-8">
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-muted-foreground/50 transition-colors">
-                <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <Label htmlFor="pdf-upload" className="cursor-pointer">
+              <Label
+                htmlFor="pdf-upload"
+                className="cursor-pointer w-full flex"
+              >
+                <div className="w-full border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-muted-foreground/50 transition-colors">
+                  <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+
                   <span className="text-lg font-medium">Choose PDF File</span>
                   <p className="text-sm text-muted-foreground mt-1">
                     Select your floor plan PDF document
                   </p>
-                </Label>
-                <Input
-                  id="pdf-upload"
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleFileUpload}
-                  ref={fileInputRef}
-                  className="hidden"
-                />
-              </div>
 
-              {error && (
-                <div className="text-destructive text-sm text-center">
-                  {error}
+                  <Input
+                    id="pdf-upload"
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleFileUpload}
+                    ref={fileInputRef}
+                    className="hidden"
+                  />
                 </div>
-              )}
 
+                {error && (
+                  <div className="text-destructive text-sm text-center">
+                    {error}
+                  </div>
+                )}
+              </Label>
               {/* Disclaimer */}
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <p className="text-sm text-amber-800">
