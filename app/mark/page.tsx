@@ -67,6 +67,7 @@ type DrawingMode = "line" | "polygon";
 
 type ScaleMode = "1:100" | "1:50" | "1:200" | "custom";
 type DimensionStandard = "A1" | "A2" | "A3" | "A4" | "custom";
+type PaperOrientation = "horizontal" | "vertical";
 
 type Layer = {
   id: string;
@@ -208,13 +209,31 @@ const SCALE_VALUES: Record<ScaleMode, number> = {
 
 const DIMENSION_SIZES: Record<
   DimensionStandard,
-  { width: number; height: number }
+  {
+    horizontal: { width: number; height: number };
+    vertical: { width: number; height: number };
+  }
 > = {
-  A1: { width: 841, height: 594 },
-  A2: { width: 594, height: 420 },
-  A3: { width: 420, height: 297 },
-  A4: { width: 297, height: 210 },
-  custom: { width: 1000, height: 1000 },
+  A1: {
+    horizontal: { width: 841, height: 594 },
+    vertical: { width: 594, height: 841 },
+  },
+  A2: {
+    horizontal: { width: 594, height: 420 },
+    vertical: { width: 420, height: 594 },
+  },
+  A3: {
+    horizontal: { width: 420, height: 297 },
+    vertical: { width: 297, height: 420 },
+  },
+  A4: {
+    horizontal: { width: 297, height: 210 },
+    vertical: { width: 210, height: 297 },
+  },
+  custom: {
+    horizontal: { width: 1000, height: 1000 },
+    vertical: { width: 1000, height: 1000 },
+  },
 };
 
 export default function SVGDrawWithPanZoom() {
@@ -229,6 +248,8 @@ export default function SVGDrawWithPanZoom() {
   const [customScale, setCustomScale] = useState(1);
   const [dimensionStandard, setDimensionStandard] =
     useState<DimensionStandard>("A1");
+  const [paperOrientation, setPaperOrientation] =
+    useState<PaperOrientation>("horizontal");
   const [customDimensions, setCustomDimensions] = useState({
     width: 1000,
     height: 1000,
@@ -327,12 +348,13 @@ export default function SVGDrawWithPanZoom() {
       SVGWidth: svgDims.width,
       SVGHeight: svgDims.height,
     }));
-  }, [dimensions, dimensionStandard, customDimensions]);
+  }, [dimensions, dimensionStandard, paperOrientation, customDimensions]);
 
   function getCurrentSVGDimensions() {
-    return dimensionStandard === "custom"
-      ? customDimensions
-      : DIMENSION_SIZES[dimensionStandard];
+    if (dimensionStandard === "custom") {
+      return customDimensions;
+    }
+    return DIMENSION_SIZES[dimensionStandard][paperOrientation];
   }
 
   function getCurrentScale() {
@@ -758,7 +780,6 @@ export default function SVGDrawWithPanZoom() {
 
   // Create estimation function
   function createEstimation() {
-    // Prepare estimation data
     const estimationData = {
       elements: buildingElements.map((element) => ({
         id: element.id,
@@ -769,16 +790,19 @@ export default function SVGDrawWithPanZoom() {
         totalArea: getTotalElementArea(element),
         count: element.count,
         color: element.color,
+        price: 0, // Default price for estimate page
       })),
       scale: getCurrentScale(),
-      dimensions: getCurrentSVGDimensions(),
+      dimensions: {
+        ...getCurrentSVGDimensions(),
+        standard: dimensionStandard,
+        orientation: paperOrientation,
+      },
       timestamp: Date.now(),
     };
 
-    // Encode data as base64 URL parameter
+    // Encode data and navigate to estimate page
     const encodedData = btoa(JSON.stringify(estimationData));
-
-    // Navigate to estimate page with data
     router.push(`/estimate?data=${encodedData}`);
   }
 
@@ -885,13 +909,52 @@ export default function SVGDrawWithPanZoom() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="A1">A1 (841×594mm)</SelectItem>
-                      <SelectItem value="A2">A2 (594×420mm)</SelectItem>
-                      <SelectItem value="A3">A3 (420×297mm)</SelectItem>
-                      <SelectItem value="A4">A4 (297×210mm)</SelectItem>
+                      <SelectItem value="A1">A1</SelectItem>
+                      <SelectItem value="A2">A2</SelectItem>
+                      <SelectItem value="A3">A3</SelectItem>
+                      <SelectItem value="A4">A4</SelectItem>
                       <SelectItem value="custom">Custom</SelectItem>
                     </SelectContent>
                   </Select>
+
+                  {/* Orientation selector - only show for standard paper sizes */}
+                  {dimensionStandard !== "custom" && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Orientation</Label>
+                      <Select
+                        value={paperOrientation}
+                        onValueChange={(value) =>
+                          setPaperOrientation(value as PaperOrientation)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="horizontal">
+                            Horizontal (Landscape) -{" "}
+                            {
+                              DIMENSION_SIZES[dimensionStandard].horizontal
+                                .width
+                            }
+                            ×
+                            {
+                              DIMENSION_SIZES[dimensionStandard].horizontal
+                                .height
+                            }
+                            mm
+                          </SelectItem>
+                          <SelectItem value="vertical">
+                            Vertical (Portrait) -{" "}
+                            {DIMENSION_SIZES[dimensionStandard].vertical.width}×
+                            {DIMENSION_SIZES[dimensionStandard].vertical.height}
+                            mm
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
                   {dimensionStandard === "custom" && (
                     <div className="flex gap-2">
                       <Input

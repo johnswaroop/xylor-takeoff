@@ -4,7 +4,6 @@ export interface UserFormData {
   phone?: string;
   company: string;
   title: string;
-  wantDemo: boolean;
 }
 
 export interface UserResponse {
@@ -14,7 +13,6 @@ export interface UserResponse {
   phone: string;
   company: string;
   title: string;
-  wantDemo: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

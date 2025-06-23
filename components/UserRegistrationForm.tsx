@@ -13,15 +13,41 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { UserFormData, ApiResponse } from "@/lib/types/user";
-import {
-  User,
-  Mail,
-  Phone,
-  Building,
-  Briefcase,
-  MessageSquare,
-} from "lucide-react";
+import { User, Mail, Phone, Building, Briefcase } from "lucide-react";
 import { toast } from "sonner";
+
+// Common country codes
+const countryCodes = [
+  { code: "+1", country: "US/CA", flag: "🇺🇸" },
+  { code: "+44", country: "UK", flag: "🇬🇧" },
+  { code: "+33", country: "France", flag: "🇫🇷" },
+  { code: "+49", country: "Germany", flag: "🇩🇪" },
+  { code: "+39", country: "Italy", flag: "🇮🇹" },
+  { code: "+34", country: "Spain", flag: "🇪🇸" },
+  { code: "+31", country: "Netherlands", flag: "🇳🇱" },
+  { code: "+32", country: "Belgium", flag: "🇧🇪" },
+  { code: "+41", country: "Switzerland", flag: "🇨🇭" },
+  { code: "+43", country: "Austria", flag: "🇦🇹" },
+  { code: "+45", country: "Denmark", flag: "🇩🇰" },
+  { code: "+46", country: "Sweden", flag: "🇸🇪" },
+  { code: "+47", country: "Norway", flag: "🇳🇴" },
+  { code: "+358", country: "Finland", flag: "🇫🇮" },
+  { code: "+61", country: "Australia", flag: "🇦🇺" },
+  { code: "+64", country: "New Zealand", flag: "🇳🇿" },
+  { code: "+81", country: "Japan", flag: "🇯🇵" },
+  { code: "+82", country: "South Korea", flag: "🇰🇷" },
+  { code: "+86", country: "China", flag: "🇨🇳" },
+  { code: "+91", country: "India", flag: "🇮🇳" },
+  { code: "+65", country: "Singapore", flag: "🇸🇬" },
+  { code: "+852", country: "Hong Kong", flag: "🇭🇰" },
+  { code: "+971", country: "UAE", flag: "🇦🇪" },
+  { code: "+966", country: "Saudi Arabia", flag: "🇸🇦" },
+  { code: "+27", country: "South Africa", flag: "🇿🇦" },
+  { code: "+55", country: "Brazil", flag: "🇧🇷" },
+  { code: "+52", country: "Mexico", flag: "🇲🇽" },
+  { code: "+54", country: "Argentina", flag: "🇦🇷" },
+  { code: "manual", country: "Other", flag: "🌍" },
+];
 
 interface UserRegistrationFormProps {
   onRegistrationComplete: (userId: string) => void;
@@ -36,8 +62,12 @@ export default function UserRegistrationForm({
     phone: "",
     company: "",
     title: "",
-    wantDemo: false,
   });
+
+  // Local state for phone input components
+  const [selectedCountryCode, setSelectedCountryCode] = useState("+1");
+  const [manualCountryCode, setManualCountryCode] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -51,6 +81,42 @@ export default function UserRegistrationForm({
       [field]: value,
     }));
     setError(""); // Clear error when user types
+  };
+
+  // Update the combined phone number whenever components change
+  const updatePhoneNumber = (countryCode: string, phone: string) => {
+    if (phone.trim()) {
+      const fullPhoneNumber = `${countryCode}${phone}`;
+      handleInputChange("phone", fullPhoneNumber);
+    } else {
+      handleInputChange("phone", "");
+    }
+  };
+
+  const handleCountryCodeChange = (value: string) => {
+    setSelectedCountryCode(value);
+    if (value !== "manual") {
+      setManualCountryCode("");
+      updatePhoneNumber(value, phoneNumber);
+    } else {
+      updatePhoneNumber(manualCountryCode, phoneNumber);
+    }
+  };
+
+  const handleManualCountryCodeChange = (value: string) => {
+    setManualCountryCode(value);
+    if (selectedCountryCode === "manual") {
+      updatePhoneNumber(value, phoneNumber);
+    }
+  };
+
+  const handlePhoneNumberChange = (value: string) => {
+    setPhoneNumber(value);
+    const currentCountryCode =
+      selectedCountryCode === "manual"
+        ? manualCountryCode
+        : selectedCountryCode;
+    updatePhoneNumber(currentCountryCode, value);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,7 +194,7 @@ export default function UserRegistrationForm({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              Registration Information
+              Your Information
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -174,13 +240,55 @@ export default function UserRegistrationForm({
                     (optional)
                   </span>
                 </Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="Enter your phone number"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
-                />
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Select
+                      value={selectedCountryCode}
+                      onValueChange={handleCountryCodeChange}
+                    >
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countryCodes.map((country) => (
+                          <SelectItem key={country.code} value={country.code}>
+                            {country.flag}{" "}
+                            {country.code !== "manual" ? country.code : ""}{" "}
+                            {country.country}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {selectedCountryCode === "manual" && (
+                      <Input
+                        type="text"
+                        placeholder="Enter country code (e.g., +1)"
+                        value={manualCountryCode}
+                        onChange={(e) =>
+                          handleManualCountryCodeChange(e.target.value)
+                        }
+                        className="w-32"
+                      />
+                    )}
+
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="Enter your phone number"
+                      value={phoneNumber}
+                      onChange={(e) => handlePhoneNumberChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+
+                  {formData.phone && (
+                    <div className="text-sm text-muted-foreground">
+                      Complete number:{" "}
+                      <span className="font-mono">{formData.phone}</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Company */}
@@ -213,33 +321,6 @@ export default function UserRegistrationForm({
                   onChange={(e) => handleInputChange("title", e.target.value)}
                   required
                 />
-              </div>
-
-              {/* Demo Request */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Would you like us to demo the full capabilities of this
-                  program? *
-                </Label>
-                <Select
-                  value={formData.wantDemo.toString()}
-                  onValueChange={(value) =>
-                    handleInputChange("wantDemo", value === "true")
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an option" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">
-                      Yes, I&apos;m interested in a demo
-                    </SelectItem>
-                    <SelectItem value="false">
-                      No, just the tool access
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               {error && (

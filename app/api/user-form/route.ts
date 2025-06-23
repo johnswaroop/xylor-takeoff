@@ -10,20 +10,12 @@ export async function POST(request: NextRequest) {
 
     // Parse the request body
     const body: UserFormData = await request.json();
-    const { name, email, phone, company, title, wantDemo } = body;
+    const { name, email, phone, company, title } = body;
 
     // Validate required fields
     if (!name || !email || !company || !title) {
       return NextResponse.json<ApiResponse>(
         { error: "Name, email, company, and title are required fields" },
-        { status: 400 }
-      );
-    }
-
-    // Validate wantDemo field
-    if (typeof wantDemo !== "boolean") {
-      return NextResponse.json<ApiResponse>(
-        { error: "Please specify if you want a demo (Yes/No)" },
         { status: 400 }
       );
     }
@@ -48,7 +40,6 @@ export async function POST(request: NextRequest) {
       phone: phone?.trim() || "",
       company: company.trim(),
       title: title.trim(),
-      wantDemo,
     });
 
     // Save to database
@@ -64,7 +55,6 @@ export async function POST(request: NextRequest) {
           phone: savedUser.phone,
           company: savedUser.company,
           title: savedUser.title,
-          wantDemo: savedUser.wantDemo,
         },
       },
       { status: 201 }

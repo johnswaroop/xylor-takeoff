@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,13 +45,18 @@ type EstimationElement = {
 type EstimationData = {
   elements: EstimationElement[];
   scale: number;
-  dimensions: { width: number; height: number };
+  dimensions: {
+    width: number;
+    height: number;
+    standard?: string;
+    orientation?: string;
+  };
   timestamp: number;
 };
 
 const Debug = false;
 
-export default function EstimatePage() {
+function EstimateContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [estimationData, setEstimationData] = useState<EstimationData | null>(
@@ -509,5 +514,13 @@ export default function EstimatePage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function EstimatePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <EstimateContent />
+    </Suspense>
   );
 }

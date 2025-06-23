@@ -31,11 +31,6 @@ const userSchema = new mongoose.Schema({
     required: [true, "Title is required"],
     trim: true,
   },
-  wantDemo: {
-    type: Boolean,
-    required: [true, "Please specify if you want a demo"],
-    default: false,
-  },
   createdAt: {
     type: Date,
     default: Date.now,

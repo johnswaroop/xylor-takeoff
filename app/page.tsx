@@ -55,11 +55,6 @@ export default function Home() {
             TEST XYLOR AI
           </button>
         </Link>
-
-        {/* Subtle Supporting Text */}
-        <p className="text-sm text-gray-500 mt-8">
-          No credit card required • Get started in 30 seconds
-        </p>
       </div>
     </div>
   );
