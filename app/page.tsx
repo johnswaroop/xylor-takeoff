@@ -1,103 +1,128 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useRef, useState, useEffect } from "react";
+import {
+  ReactSVGPanZoom,
+  TOOL_NONE,
+  Value,
+  Tool,
+  ViewerMouseEvent,
+  POSITION_NONE,
+  MODE_IDLE,
+} from "react-svg-pan-zoom";
+
+type Point = { x: number; y: number };
+
+export default function SVGDrawWithPanZoom() {
+  const viewer = useRef<ReactSVGPanZoom>(null);
+  const [tool, setTool] = useState<Tool>(TOOL_NONE);
+  const [points, setPoints] = useState<Point[]>([]);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+
+  // Create initial value object with dynamic dimensions
+  const [value, setValue] = useState<Value>({
+    version: 2,
+    mode: MODE_IDLE,
+    focus: false,
+    a: 1,
+    b: 0,
+    c: 0,
+    d: 1,
+    e: 0,
+    f: 0,
+    viewerWidth: dimensions.width,
+    viewerHeight: dimensions.height,
+    SVGWidth: 1000,
+    SVGHeight: 1000,
+    startX: null,
+    startY: null,
+    endX: null,
+    endY: null,
+    miniatureOpen: false,
+  });
+
+  // Update dimensions on window resize
+  useEffect(() => {
+    const updateDimensions = () => {
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    // Set initial dimensions
+    updateDimensions();
+
+    // Add event listener for window resize
+    window.addEventListener("resize", updateDimensions);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", updateDimensions);
+  }, []);
+
+  // Update value when dimensions change
+  useEffect(() => {
+    setValue((prev) => ({
+      ...prev,
+      viewerWidth: dimensions.width,
+      viewerHeight: dimensions.height,
+    }));
+  }, [dimensions]);
+
+  const handleClick = <T,>(event: ViewerMouseEvent<T>) => {
+    // The point is available in the event object
+    if (
+      event.point &&
+      typeof event.point.x === "number" &&
+      typeof event.point.y === "number"
+    ) {
+      setPoints((prev) => [...prev, event.point]);
+    }
+  };
+
+  // Calculate scaled radius based on current zoom level
+  const getScaledRadius = () => {
+    const baseRadius = 5; // Base radius when zoom = 1
+    const currentZoom = value.a; // The 'a' property represents the scale factor
+    return baseRadius / currentZoom;
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="fixed inset-0 w-full h-full overflow-hidden">
+      <ReactSVGPanZoom
+        width={dimensions.width}
+        height={dimensions.height}
+        ref={viewer}
+        tool={tool}
+        onChangeTool={setTool}
+        value={value}
+        onChangeValue={setValue}
+        onClick={handleClick}
+        detectAutoPan={false}
+        miniatureProps={{
+          position: POSITION_NONE,
+          background: "white",
+          width: 100,
+          height: 100,
+        }}
+        background="white"
+      >
+        <svg width={1000} height={1000}>
+          {/* Background image (replace with your own) */}
+          <image href="/a1.jpg" x="0" y="0" width="1000" height="1000" />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+          {/* Draw placed points with scaled radius */}
+          {points.map((p, i) => (
+            <circle
+              key={i}
+              cx={p.x}
+              cy={p.y}
+              r={getScaledRadius()}
+              fill="red"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          ))}
+        </svg>
+      </ReactSVGPanZoom>
     </div>
   );
 }
