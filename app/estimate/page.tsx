@@ -472,9 +472,7 @@ function EstimateContent() {
                   return (
                     <div className="pt-4 border-t">
                       <div className="flex justify-between items-center text-lg">
-                        <span className="font-medium">
-                          Cost per m² (External Wall):
-                        </span>
+                        <span className="font-medium">Cost per m²</span>
                         <span className="font-bold text-blue-600">
                           ${costPerSqMeter.toFixed(2)}/m²
                         </span>

@@ -19,6 +19,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@svgdotjs/svg.draw.js": "^3.0.2",
     "@svgdotjs/svg.js": "^3.2.4",
+    "@vercel/analytics": "^1.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.522.0",
