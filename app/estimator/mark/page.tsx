@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ReactSVGPanZoom,
   TOOL_NONE,
@@ -239,6 +239,7 @@ const DIMENSION_SIZES: Record<
 export default function SVGDrawWithPanZoom() {
   const viewer = useRef<ReactSVGPanZoom>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [tool, setTool] = useState<Tool>(TOOL_NONE);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
@@ -801,9 +802,16 @@ export default function SVGDrawWithPanZoom() {
       timestamp: Date.now(),
     };
 
+    // Get leadId from URL parameters
+    const leadId = searchParams.get("leadId");
+
     // Encode data and navigate to estimate page
     const encodedData = btoa(JSON.stringify(estimationData));
-    router.push(`/estimate?data=${encodedData}`);
+    const estimateUrl = leadId
+      ? `/estimator?data=${encodedData}&leadId=${leadId}`
+      : `/estimator?data=${encodedData}`;
+
+    router.push(estimateUrl);
   }
 
   return (
