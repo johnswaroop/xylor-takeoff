@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { ArrowLeft, Mail, Plus, Eye } from "lucide-react";
-import { LEAD_STATUS_LABELS } from "@/lib/types/lead-status";
-import { PROJECT_TYPE_LABELS } from "@/lib/types/project-types";
+
 import { LeadHeader } from "./components/LeadHeader";
 import { LeadDetailsPanel } from "./components/LeadDetailsPanel";
 import { ActivityTimeline } from "./components/ActivityTimeline";
