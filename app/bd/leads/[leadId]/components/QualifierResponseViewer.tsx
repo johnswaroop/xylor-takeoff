@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -217,7 +216,10 @@ export function QualifierResponseViewer({
       strValue.includes("ready")
     ) {
       return (
-        <Badge variant="default" className="bg-green-100 text-green-800">
+        <Badge
+          variant="default"
+          className="bg-green-100 text-green-800 border-green-200"
+        >
           ✓ Positive
         </Badge>
       );
@@ -301,266 +303,199 @@ export function QualifierResponseViewer({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] p-0">
-        <DialogHeader className="px-6 pt-6 pb-4">
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b">
+          <DialogTitle className="flex items-center gap-2 text-lg">
+            <FileText className="h-5 w-5 text-blue-600" />
             Qualification Form Response
           </DialogTitle>
           <DialogDescription>
-            Response from {lead.contactPerson} at {lead.companyName}
+            Response from{" "}
+            <span className="font-medium">{lead.contactPerson}</span> at{" "}
+            <span className="font-medium">{lead.companyName}</span>
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex h-[calc(90vh-120px)]">
-          {/* Left Panel - Form Responses */}
-          <div className="w-1/2 border-r">
-            <div className="h-full px-6 overflow-y-auto">
-              <div className="space-y-6 pb-6">
-                {/* Submission Info */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                      Response Summary
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium text-gray-600">
-                          Total Responses:
-                        </span>
-                        <p className="text-lg font-bold text-blue-600">
-                          {responses.length}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-600">
-                          Status:
-                        </span>
-                        <Badge
-                          variant="default"
-                          className="bg-green-100 text-green-800 ml-2"
-                        >
-                          Completed
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+        {/* Full Width Simplified Layout */}
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="space-y-4">
+            {/* Simple Summary */}
+            <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span className="font-medium text-green-800">
+                  {responses.length} responses completed
+                </span>
+              </div>
+              <Badge className="bg-green-100 text-green-800 border-green-200">
+                ✓ Completed
+              </Badge>
+            </div>
 
-                {/* Form Responses */}
-                <div className="space-y-4">
-                  {responses.map((field) => {
-                    const IconComponent = field.icon;
+            {/* Simplified Form Responses */}
+            <div className="space-y-3">
+              {responses.map((field) => {
+                const IconComponent = field.icon;
 
-                    return (
-                      <Card
-                        key={field.id}
-                        className="hover:shadow-sm transition-shadow"
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="p-2 rounded-lg bg-blue-50 text-blue-600 mt-1">
-                              <IconComponent className="h-4 w-4" />
+                return (
+                  <div
+                    key={field.id}
+                    className="border rounded-lg p-4 hover:shadow-sm transition-shadow"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded bg-blue-50 text-blue-600 mt-0.5">
+                        <IconComponent className="h-4 w-4" />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-gray-900">
+                            {field.label}
+                          </h4>
+                          {getStatusBadge(field.value)}
+                        </div>
+
+                        {field.type === "file" && field.value ? (
+                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded border-dashed border">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-5 w-5 text-blue-600" />
+                              <span className="text-sm text-gray-700">
+                                Floor plan PDF uploaded
+                              </span>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-medium text-gray-900">
-                                  {field.label}
-                                </h4>
-                                {getStatusBadge(field.value)}
-                              </div>
-
-                              {field.type === "file" && field.value ? (
-                                <div className="space-y-2">
-                                  <p className="text-sm text-gray-600">
-                                    Floor plan PDF uploaded
-                                  </p>
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() =>
-                                        setShowPdfViewer(!showPdfViewer)
-                                      }
-                                      className="flex items-center gap-1"
-                                    >
-                                      <Eye className="h-3 w-3" />
-                                      {showPdfViewer ? "Hide" : "View"} PDF
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={handleDownloadPdf}
-                                      className="flex items-center gap-1"
-                                    >
-                                      <Download className="h-3 w-3" />
-                                      Download
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="space-y-1">
-                                  <p className="text-gray-700 break-words">
-                                    {formatValue(field)}
-                                  </p>
-                                  {field.type === "textarea" &&
-                                    field.value &&
-                                    String(field.value).length > 100 && (
-                                      <p className="text-xs text-gray-500">
-                                        {String(field.value).length} characters
-                                      </p>
-                                    )}
-                                </div>
-                              )}
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setShowPdfViewer(!showPdfViewer)}
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                {showPdfViewer ? "Hide" : "View"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={handleDownloadPdf}
+                              >
+                                <Download className="h-3 w-3 mr-1" />
+                                Download
+                              </Button>
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-
-                {/* Empty State */}
-                {responses.length === 0 && (
-                  <Card>
-                    <CardContent className="p-8 text-center">
-                      <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <h3 className="font-medium text-gray-900 mb-1">
-                        No Response Data
-                      </h3>
-                      <p className="text-gray-500">
-                        This lead hasn&apos;t submitted a qualification form
-                        yet.
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Panel - PDF Viewer */}
-          <div className="w-1/2 flex flex-col">
-            <div className="p-4 border-b bg-gray-50">
-              <div className="flex items-center justify-between">
-                <h3 className="font-medium text-gray-900 flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Floor Plan PDF
-                </h3>
-                {pdfFile && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handlePdfPageChange("prev")}
-                      disabled={currentPdfPage <= 1}
-                    >
-                      <ChevronLeft className="h-3 w-3" />
-                    </Button>
-                    <span className="text-sm text-gray-600 px-2">
-                      {currentPdfPage} / {numPages}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handlePdfPageChange("next")}
-                      disabled={currentPdfPage >= numPages}
-                    >
-                      <ChevronRight className="h-3 w-3" />
-                    </Button>
-                    <Separator orientation="vertical" className="h-6" />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handlePdfZoom("out")}
-                      disabled={pdfScale <= 0.5}
-                    >
-                      <ZoomOut className="h-3 w-3" />
-                    </Button>
-                    <span className="text-sm text-gray-600 px-1">
-                      {Math.round(pdfScale * 100)}%
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handlePdfZoom("in")}
-                      disabled={pdfScale >= 3.0}
-                    >
-                      <ZoomIn className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handlePdfRotate}
-                    >
-                      <RotateCw className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto">
-              <div className="p-4">
-                {!pdfResponse?.value ? (
-                  <div className="h-full flex items-center justify-center text-center">
-                    <div>
-                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <h3 className="font-medium text-gray-900 mb-1">
-                        No PDF Available
-                      </h3>
-                      <p className="text-gray-500">
-                        No floor plan was uploaded with this response.
-                      </p>
+                        ) : (
+                          <div className="bg-gray-50 rounded p-3 border">
+                            <p className="text-gray-900 text-sm leading-relaxed">
+                              {formatValue(field)}
+                            </p>
+                            {field.type === "textarea" &&
+                              field.value &&
+                              String(field.value).length > 100 && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {String(field.value).length} characters
+                                </p>
+                              )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                ) : pdfLoading ? (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <Loader2 className="h-8 w-8 text-blue-600 animate-spin mx-auto mb-3" />
-                      <p className="text-gray-600">Loading PDF...</p>
-                    </div>
-                  </div>
-                ) : pdfError ? (
-                  <div className="h-full flex items-center justify-center text-center">
-                    <div>
-                      <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-3" />
-                      <h3 className="font-medium text-gray-900 mb-1">
-                        PDF Load Error
-                      </h3>
-                      <p className="text-gray-500 mb-3">{pdfError}</p>
+                );
+              })}
+            </div>
+
+            {/* Simplified PDF Viewer */}
+            {pdfResponse?.value && showPdfViewer && (
+              <div className="border rounded-lg">
+                <div className="flex items-center justify-between p-3 border-b bg-gray-50">
+                  <h3 className="font-medium text-gray-900 flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Floor Plan PDF
+                  </h3>
+                  {pdfFile && (
+                    <div className="flex items-center gap-1">
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => loadPDF(pdfResponse.value as string)}
+                        onClick={() => handlePdfPageChange("prev")}
+                        disabled={currentPdfPage <= 1}
                       >
-                        Try Again
+                        <ChevronLeft className="h-3 w-3" />
+                      </Button>
+                      <span className="text-xs text-gray-600 px-2">
+                        {currentPdfPage}/{numPages}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handlePdfPageChange("next")}
+                        disabled={currentPdfPage >= numPages}
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                      </Button>
+                      <Separator orientation="vertical" className="h-5 mx-1" />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handlePdfZoom("out")}
+                        disabled={pdfScale <= 0.5}
+                      >
+                        <ZoomOut className="h-3 w-3" />
+                      </Button>
+                      <span className="text-xs text-gray-600 px-1">
+                        {Math.round(pdfScale * 100)}%
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handlePdfZoom("in")}
+                        disabled={pdfScale >= 3.0}
+                      >
+                        <ZoomIn className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handlePdfRotate}
+                      >
+                        <RotateCw className="h-3 w-3" />
                       </Button>
                     </div>
-                  </div>
-                ) : pdfFile && showPdfViewer ? (
-                  <div className="flex justify-center">
-                    <Document
-                      file={pdfFile}
-                      loading={
-                        <div className="flex items-center justify-center p-8">
-                          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                  )}
+                </div>
+
+                <div className="p-4">
+                  <div className="flex justify-center min-h-[300px]">
+                    {pdfLoading ? (
+                      <div className="flex items-center justify-center">
+                        <div className="text-center">
+                          <Loader2 className="h-6 w-6 text-blue-600 animate-spin mx-auto mb-2" />
+                          <p className="text-sm text-gray-600">
+                            Loading PDF...
+                          </p>
                         </div>
-                      }
-                      error={
-                        <div className="text-center p-8">
+                      </div>
+                    ) : pdfError ? (
+                      <div className="flex items-center justify-center text-center">
+                        <div>
                           <AlertCircle className="h-8 w-8 text-red-400 mx-auto mb-2" />
-                          <p className="text-gray-600">Failed to load PDF</p>
+                          <h3 className="font-medium text-gray-900 mb-1">
+                            PDF Load Error
+                          </h3>
+                          <p className="text-sm text-gray-500 mb-2">
+                            {pdfError}
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => loadPDF(pdfResponse.value as string)}
+                          >
+                            Try Again
+                          </Button>
                         </div>
-                      }
-                    >
-                      <Page
-                        pageNumber={currentPdfPage}
-                        scale={pdfScale}
-                        rotate={pdfRotation}
+                      </div>
+                    ) : pdfFile ? (
+                      <Document
+                        file={pdfFile}
                         loading={
                           <div className="flex items-center justify-center p-4">
                             <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
@@ -568,34 +503,50 @@ export function QualifierResponseViewer({
                         }
                         error={
                           <div className="text-center p-4">
-                            <p className="text-gray-600">Failed to load page</p>
+                            <AlertCircle className="h-6 w-6 text-red-400 mx-auto mb-1" />
+                            <p className="text-sm text-gray-600">
+                              Failed to load PDF
+                            </p>
                           </div>
                         }
-                      />
-                    </Document>
-                  </div>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-center">
-                    <div>
-                      <Eye className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                      <h3 className="font-medium text-gray-900 mb-1">
-                        PDF Available
-                      </h3>
-                      <p className="text-gray-500 mb-3">
-                        Click &quot;View PDF&quot; to display the floor plan.
-                      </p>
-                      <Button
-                        onClick={() => setShowPdfViewer(true)}
-                        className="flex items-center gap-2"
                       >
-                        <Eye className="h-4 w-4" />
-                        View PDF
-                      </Button>
-                    </div>
+                        <Page
+                          pageNumber={currentPdfPage}
+                          scale={pdfScale}
+                          rotate={pdfRotation}
+                          loading={
+                            <div className="flex items-center justify-center p-4">
+                              <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
+                            </div>
+                          }
+                          error={
+                            <div className="text-center p-4">
+                              <p className="text-sm text-gray-600">
+                                Failed to load page
+                              </p>
+                            </div>
+                          }
+                        />
+                      </Document>
+                    ) : null}
                   </div>
-                )}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Simple Empty State */}
+            {responses.length === 0 && (
+              <div className="text-center p-8 border border-dashed rounded-lg">
+                <AlertCircle className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                <h3 className="font-medium text-gray-900 mb-1">
+                  No Response Data Available
+                </h3>
+                <p className="text-sm text-gray-500">
+                  This lead hasn&apos;t submitted a qualification form response
+                  yet.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>

@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
       .populate("assignedEstimator", "name")
       .sort({ updatedAt: -1 })
       .limit(limit * 2) // Get more leads to extract activities from
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .lean()) as Array<Record<string, any>>;
 
     // Collect activities from leads

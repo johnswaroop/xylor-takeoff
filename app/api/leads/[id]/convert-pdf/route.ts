@@ -84,7 +84,7 @@ function hasRequiredRole(
 // POST /api/leads/[id]/convert-pdf - Convert PDF page to image
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authenticate user

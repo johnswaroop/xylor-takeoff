@@ -192,18 +192,19 @@ export default function CreateLeadPage() {
 
         if (stepThreeData.scheduleDateTime) {
           message = "Lead scheduled successfully!";
-          description = "The qualifier will be sent at the scheduled time.";
+          description =
+            "The qualifier will be sent at the scheduled time and status will be updated automatically.";
         } else {
           // Check if email was sent successfully
           if (result.emailSent === false) {
             message = "Lead created with email issues";
             description = `Lead saved successfully, but there was an issue sending the email: ${
               result.emailError || "Unknown email error"
-            }. You can manually send it later.`;
+            }. Status remains 'Preparing Qualifiers' - you can manually send the email later.`;
           } else {
             message = "Lead created and qualifier sent!";
             description =
-              "The client will receive the qualification form shortly.";
+              "The client will receive the qualification form shortly. Lead status updated to 'Qualifiers Sent'.";
           }
         }
 

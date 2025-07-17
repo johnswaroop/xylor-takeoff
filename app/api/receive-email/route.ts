@@ -16,8 +16,10 @@ interface ReceiveEmailRequest {
   markAsSeen?: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const connectToImap = (): Promise<any> => {
   return new Promise((resolve, reject) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const imap = new (Imap as any)({
       user: process.env.EMAIL_USER,
       password: process.env.EMAIL_PASS,
@@ -31,6 +33,7 @@ const connectToImap = (): Promise<any> => {
       resolve(imap);
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     imap.once("error", (err: any) => {
       reject(err);
     });
@@ -67,18 +70,27 @@ const parseEmailMessage = async (
         text: text.trim(),
       };
 
+      console.log("📧 Detected email:", {
+        from: emailMessage.from,
+        subject: emailMessage.subject,
+        date: emailMessage.date.toISOString(),
+        textLength: emailMessage.text.length,
+      });
+
       resolve(emailMessage);
     });
   });
 };
 
 const fetchEmails = async (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   imap: any,
   filterFromEmail?: string,
   filterAfterTimestamp?: Date,
   markAsSeen: boolean = false
 ): Promise<EmailMessage[]> => {
   return new Promise((resolve, reject) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
     imap.openBox("INBOX", !markAsSeen, (err: any, _box: any) => {
       if (err) {
         reject(err);
@@ -86,11 +98,13 @@ const fetchEmails = async (
       }
 
       // Build search criteria
-      const searchCriteria: any[] = ["UNSEEN"];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let searchCriteria: any[] = ["ALL"]; // Fetch all emails instead of just unseen
       if (filterAfterTimestamp) {
-        searchCriteria.push(["SINCE", filterAfterTimestamp]);
+        searchCriteria = [["SINCE", filterAfterTimestamp]]; // Use timestamp as primary filter
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       imap.search(searchCriteria, async (err: any, results: any) => {
         if (err) {
           reject(err);
@@ -98,9 +112,12 @@ const fetchEmails = async (
         }
 
         if (!results || results.length === 0) {
+          console.log("📪 No emails found matching search criteria");
           resolve([]);
           return;
         }
+
+        console.log(`📨 Found ${results.length} emails to process`);
 
         const fetch = imap.fetch(results, {
           bodies: "",
@@ -110,10 +127,13 @@ const fetchEmails = async (
         const emails: EmailMessage[] = [];
         const parsePromises: Promise<void>[] = [];
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
         fetch.on("message", (msg: any, _seqno: any) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
           msg.on("body", (stream: any, _info: any) => {
             let buffer = "";
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             stream.on("data", (chunk: any) => {
               buffer += chunk.toString("utf8");
             });
@@ -124,9 +144,15 @@ const fetchEmails = async (
                 if (parsedEmail) {
                   // Apply client-side filtering
                   if (filterFromEmail && parsedEmail.from !== filterFromEmail) {
+                    console.log(
+                      `🚫 Filtered out email from ${parsedEmail.from} (not matching ${filterFromEmail})`
+                    );
                     resolveMsg();
                     return;
                   }
+                  console.log(
+                    `✅ Email accepted: ${parsedEmail.from} - ${parsedEmail.subject}`
+                  );
                   emails.push(parsedEmail);
                 }
                 resolveMsg();
@@ -137,6 +163,7 @@ const fetchEmails = async (
           });
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         fetch.once("error", (err: any) => {
           reject(err);
         });
@@ -147,6 +174,19 @@ const fetchEmails = async (
 
           // Sort emails by date (newest first)
           emails.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+          console.log(`📬 Total emails processed: ${emails.length}`);
+          if (emails.length > 0) {
+            console.log(
+              "📋 Email summary:",
+              emails.map((email) => ({
+                from: email.from,
+                subject: email.subject,
+                date: email.date.toISOString(),
+              }))
+            );
+          }
+
           resolve(emails);
         });
       });
@@ -181,9 +221,16 @@ export async function POST(request: NextRequest) {
 
     // Connect to IMAP
     const imap = await connectToImap();
+    console.log("🔌 Connected to IMAP server");
 
     try {
       // Fetch emails
+      console.log("🔍 Starting email fetch with filters:", {
+        filterFromEmail,
+        filterAfterTimestamp: afterDate?.toISOString(),
+        markAsSeen,
+      });
+
       const emails = await fetchEmails(
         imap,
         filterFromEmail,
@@ -193,6 +240,9 @@ export async function POST(request: NextRequest) {
 
       // Close IMAP connection
       imap.end();
+      console.log("🔚 IMAP connection closed");
+
+      console.log(`🎉 Successfully retrieved ${emails.length} emails`);
 
       return NextResponse.json({
         success: true,
@@ -222,7 +272,8 @@ export async function GET() {
       method: "POST",
       body: {
         filterFromEmail: "optional: filter by sender email",
-        filterAfterTimestamp: "optional: ISO timestamp to filter emails after",
+        filterAfterTimestamp:
+          "optional: ISO timestamp to filter emails after (fetches ALL emails since this time, not just unseen)",
         markAsSeen: "optional: boolean to mark emails as read (default: false)",
       },
     },

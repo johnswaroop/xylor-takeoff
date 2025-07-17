@@ -47,7 +47,7 @@ function hasRequiredRole(
 // POST /api/leads/[id]/status - Update lead status
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authenticate user
@@ -122,6 +122,24 @@ export async function POST(
       );
     }
 
+    // Special validation: Check if estimator is assigned when changing to "SENT_FOR_ESTIMATES"
+    if (
+      statusData.toStatus === LeadStatus.SENT_FOR_ESTIMATES &&
+      !lead.assignedEstimator
+    ) {
+      return NextResponse.json<LeadApiResponse>(
+        {
+          success: false,
+          error:
+            "Cannot send lead for estimation without an assigned estimator",
+          details: [
+            "Please assign an estimator to this lead before changing status to 'Sent for Estimation'",
+          ],
+        },
+        { status: 400 }
+      );
+    }
+
     // Use the predefined status transitions from the types
     const allowedNextStatuses =
       LEAD_STATUS_TRANSITIONS[lead.status as LeadStatus] || [];
@@ -141,13 +159,17 @@ export async function POST(
       );
     }
 
-    // Update lead status using the model method
-    lead.addStatusChange(
-      statusData.toStatus,
-      user._id.toString(),
-      statusData.reason,
-      statusData.notes
-    );
+    // Update lead status using direct array operations
+    const statusChange = {
+      fromStatus: lead.status,
+      toStatus: statusData.toStatus,
+      changedBy: user._id,
+      changedAt: new Date(),
+      reason: statusData.reason,
+      notes: statusData.notes,
+    };
+    lead.statusHistory.push(statusChange);
+    lead.status = statusData.toStatus;
 
     // Save the updated lead
     await lead.save();
@@ -161,7 +183,8 @@ export async function POST(
     return NextResponse.json<LeadApiResponse>({
       success: true,
       message: `Lead status updated to ${statusData.toStatus}`,
-      lead: updatedLead?.toObject(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      lead: updatedLead?.toObject() as any,
     });
   } catch (error) {
     console.error("Error updating lead status:", error);

@@ -7,8 +7,9 @@ import { useLeadDetails } from "@/lib/hooks/useLeadDetails";
 import { NavigationHeader } from "@/components/NavigationHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { ArrowLeft, Mail, Plus, Eye } from "lucide-react";
+import { ArrowLeft, Mail, Plus, Eye, User } from "lucide-react";
 
 import { LeadHeader } from "./components/LeadHeader";
 import { LeadDetailsPanel } from "./components/LeadDetailsPanel";
@@ -18,6 +19,8 @@ import { SendEmailDialog } from "./components/SendEmailDialog";
 import { AddNoteDialog } from "./components/AddNoteDialog";
 import { QualifierResponseViewer } from "./components/QualifierResponseViewer";
 import { AssignEstimatorDialog } from "./components/AssignEstimatorDialog";
+import { EmailConversationTab } from "./components/EmailConversationTab";
+import { AIAssistantTab } from "./components/AIAssistantTab";
 
 export default function LeadDetailsPage() {
   const params = useParams();
@@ -95,8 +98,8 @@ export default function LeadDetailsPage() {
                   {error || "Lead not found"}
                 </div>
                 <p className="text-muted-foreground">
-                  The lead you're looking for doesn't exist or you don't have
-                  permission to view it.
+                  The lead you&apos;re looking for doesn&apos;t exist or you
+                  don&apos;t have permission to view it.
                 </p>
                 <Button onClick={() => router.push("/bd/dashboard")}>
                   Return to Dashboard
@@ -129,6 +132,36 @@ export default function LeadDetailsPage() {
           </div>
         </div>
 
+        {/* Estimator Assignment Warning Banner */}
+        {!lead.assignedEstimator && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200 rounded-lg shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                <User className="h-6 w-6 text-orange-600" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-lg font-semibold text-orange-900">
+                    ⚠️ Estimator Assignment Required
+                  </h3>
+                </div>
+                <p className="text-orange-700 text-sm">
+                  This lead cannot be sent for estimation without an assigned
+                  estimator. Please assign an estimator to proceed with the
+                  workflow.
+                </p>
+              </div>
+              <Button
+                onClick={() => setAssignEstimatorOpen(true)}
+                className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-6"
+                size="lg"
+              >
+                Assign Estimator Now
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Lead Header */}
         <LeadHeader
           lead={lead}
@@ -153,6 +186,18 @@ export default function LeadDetailsPage() {
                 <CardTitle className="text-lg">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                {/* Prominent Assign Estimator Button when none assigned */}
+                {!lead.assignedEstimator && (
+                  <Button
+                    onClick={() => setAssignEstimatorOpen(true)}
+                    className="w-full justify-start bg-orange-600 hover:bg-orange-700 text-white font-semibold border-2 border-orange-300"
+                    size="lg"
+                  >
+                    <User className="h-5 w-5" />
+                    🚨 Assign Estimator Required
+                  </Button>
+                )}
+
                 <Button
                   onClick={() => setEmailDialogOpen(true)}
                   className="w-full justify-start"
@@ -180,13 +225,43 @@ export default function LeadDetailsPage() {
                       View Response
                     </Button>
                   )}
+
+                {/* Secondary Assign Estimator Button when one is already assigned */}
+                {lead.assignedEstimator && (
+                  <Button
+                    onClick={() => setAssignEstimatorOpen(true)}
+                    className="w-full justify-start"
+                    variant="outline"
+                  >
+                    <User className="h-4 w-4" />
+                    Change Estimator
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Right Column - Activity Timeline */}
+          {/* Right Column - Activity & Communications */}
           <div className="lg:col-span-2">
-            <ActivityTimeline lead={lead} onRefresh={refetch} />
+            <Tabs defaultValue="activity" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="activity">Activity Timeline</TabsTrigger>
+                <TabsTrigger value="emails">Email Conversations</TabsTrigger>
+                <TabsTrigger value="ai-assistant">AI Assistant</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="activity" className="mt-6">
+                <ActivityTimeline lead={lead} onRefresh={refetch} />
+              </TabsContent>
+
+              <TabsContent value="emails" className="mt-6">
+                <EmailConversationTab lead={lead} userId={user?._id} />
+              </TabsContent>
+
+              <TabsContent value="ai-assistant" className="mt-6">
+                <AIAssistantTab lead={lead} />
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>

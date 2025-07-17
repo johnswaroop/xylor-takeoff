@@ -54,7 +54,7 @@ function hasRequiredRole(
 // GET /api/leads/[id] - Get specific lead by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authenticate user
@@ -112,7 +112,8 @@ export async function GET(
 
     return NextResponse.json<LeadApiResponse>({
       success: true,
-      lead: lead.toObject(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      lead: lead.toObject() as any,
     });
   } catch (error) {
     console.error("Error fetching lead:", error);
@@ -126,7 +127,7 @@ export async function GET(
 // PUT /api/leads/[id] - Update specific lead
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authenticate user
@@ -232,7 +233,8 @@ export async function PUT(
     return NextResponse.json<LeadApiResponse>({
       success: true,
       message: "Lead updated successfully",
-      lead: updatedLead?.toObject(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      lead: updatedLead?.toObject() as any,
     });
   } catch (error) {
     console.error("Error updating lead:", error);
@@ -270,7 +272,7 @@ export async function PUT(
 // DELETE /api/leads/[id] - Delete specific lead
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authenticate user

@@ -5,12 +5,13 @@ import { LeadStatus } from "@/lib/types/lead-status";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase();
 
-    const lead = await Lead.findById(params.id).select(
+    const { id } = await params;
+    const lead = await Lead.findById(id).select(
       "companyName contactPerson email projectType status"
     );
 
@@ -55,7 +56,7 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectToDatabase();
@@ -70,7 +71,8 @@ export async function POST(
       );
     }
 
-    const lead = await Lead.findById(params.id);
+    const { id } = await params;
+    const lead = await Lead.findById(id);
 
     if (!lead) {
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
@@ -108,22 +110,30 @@ export async function POST(
     // Handle status transitions based on current status
     if (lead.status === LeadStatus.SEND_QUALIFIERS) {
       // First transition to awaiting response, then to response received
-      lead.addStatusChange(
-        LeadStatus.AWAITING_QUALIFIER_RESPONSE,
-        lead.createdBy,
-        "Client accessed qualification form"
-      );
+      const statusChange1 = {
+        fromStatus: lead.status,
+        toStatus: LeadStatus.AWAITING_QUALIFIER_RESPONSE,
+        changedBy: lead.createdBy,
+        changedAt: new Date(),
+        reason: "Client accessed qualification form",
+      };
+      lead.statusHistory.push(statusChange1);
+      lead.status = LeadStatus.AWAITING_QUALIFIER_RESPONSE;
     }
 
     // Update status to indicate response received
-    lead.addStatusChange(
-      LeadStatus.RESPONSE_RECEIVED,
-      lead.createdBy, // System change, using creator as the changer
-      "Client submitted qualification form"
-    );
+    const statusChange2 = {
+      fromStatus: lead.status,
+      toStatus: LeadStatus.RESPONSE_RECEIVED,
+      changedBy: lead.createdBy,
+      changedAt: new Date(),
+      reason: "Client submitted qualification form",
+    };
+    lead.statusHistory.push(statusChange2);
+    lead.status = LeadStatus.RESPONSE_RECEIVED;
 
     // Add communication record
-    lead.addCommunication({
+    const communication = {
       type: "EMAIL",
       direction: "INBOUND",
       subject: "Qualification Form Submitted",
@@ -131,7 +141,8 @@ export async function POST(
         Object.keys(responses).length
       } responses`,
       sentAt: new Date(submittedAt),
-    });
+    };
+    lead.communications.push(communication);
 
     await lead.save();
 

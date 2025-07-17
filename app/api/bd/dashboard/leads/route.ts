@@ -128,27 +128,28 @@ export async function GET(request: NextRequest) {
         PROJECT_TYPE_LABELS[
           lead.projectType as keyof typeof PROJECT_TYPE_LABELS
         ] || (lead.projectType as string),
-      lastContactDate: getLastContactDate(
-        lead.communications as Array<{ sentAt: Date }>
-      ),
+      lastContactDate:
+        getLastContactDate(
+          lead.communications as Array<{ sentAt: Date }>
+        )?.toISOString() || null,
       assignedEstimator: lead.assignedEstimator
         ? {
             _id: (
-              lead.assignedEstimator as {
+              lead.assignedEstimator as unknown as {
                 _id: { toString(): string };
                 name: string;
               }
             )._id.toString(),
             name: (
-              lead.assignedEstimator as {
+              lead.assignedEstimator as unknown as {
                 _id: { toString(): string };
                 name: string;
               }
             ).name,
           }
         : null,
-      createdAt: lead.createdAt as Date,
-      updatedAt: lead.updatedAt as Date,
+      createdAt: (lead.createdAt as Date).toISOString(),
+      updatedAt: (lead.updatedAt as Date).toISOString(),
       ageInDays: calculateAgeInDays(lead.createdAt as Date),
     }));
 

@@ -175,43 +175,60 @@ export function LeadDetailsPanel({
                   Assigned Estimator
                 </span>
                 <Button
-                  variant="outline"
+                  variant={lead.assignedEstimator ? "outline" : "default"}
                   size="sm"
                   onClick={onAssignEstimator}
-                  className="text-xs h-7 px-2"
+                  className={`text-xs h-7 px-3 ${
+                    !lead.assignedEstimator
+                      ? "bg-orange-600 hover:bg-orange-700 text-white font-medium"
+                      : ""
+                  }`}
                 >
-                  {lead.assignedEstimator ? "Change" : "Assign"}
+                  {lead.assignedEstimator ? "Change" : "Assign Now"}
                 </Button>
               </div>
               {lead.assignedEstimator ? (
-                <div className="flex items-center gap-3 p-2 bg-blue-50 rounded-lg">
-                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                    <User className="h-3 w-3 text-blue-600" />
+                <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                    <User className="h-4 w-4 text-green-600" />
                   </div>
-                  <div>
-                    <div className="text-sm font-medium text-blue-900">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-green-900">
                       {(lead.assignedEstimator as { name?: string })?.name ||
                         "Assigned"}
                     </div>
-                    <div className="text-xs text-blue-600">
+                    <div className="text-xs text-green-600">
                       {(lead.assignedEstimator as { email?: string })?.email ||
-                        ""}
+                        "Estimator assigned"}
                     </div>
                   </div>
+                  <Badge
+                    variant="secondary"
+                    className="bg-green-100 text-green-700"
+                  >
+                    Assigned
+                  </Badge>
                 </div>
               ) : (
-                <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                  <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
-                    <User className="h-3 w-3 text-gray-400" />
+                <div className="flex items-center gap-3 p-4 bg-orange-50 border-2 border-orange-200 border-dashed rounded-lg">
+                  <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                    <User className="h-5 w-5 text-orange-600" />
                   </div>
-                  <div>
-                    <div className="text-sm text-gray-500">
-                      No estimator assigned
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-orange-900">
+                      ⚠️ No estimator assigned
                     </div>
-                    <div className="text-xs text-gray-400">
-                      Click Assign to assign an estimator
+                    <div className="text-xs text-orange-700 mt-1">
+                      Required before sending for estimation
                     </div>
                   </div>
+                  <Button
+                    onClick={onAssignEstimator}
+                    size="sm"
+                    className="bg-orange-600 hover:bg-orange-700 text-white font-medium"
+                  >
+                    Assign Now
+                  </Button>
                 </div>
               )}
             </div>

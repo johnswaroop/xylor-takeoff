@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ReactSVGPanZoom,
@@ -236,7 +236,7 @@ const DIMENSION_SIZES: Record<
   },
 };
 
-export default function SVGDrawWithPanZoom() {
+function SVGDrawWithPanZoomInner() {
   const viewer = useRef<ReactSVGPanZoom>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -269,6 +269,9 @@ export default function SVGDrawWithPanZoom() {
   const [expandedElementId, setExpandedElementId] = useState<string | null>(
     null
   );
+  const [elementCounters, setElementCounters] = useState<
+    Record<BuildingElementType, number>
+  >({} as Record<BuildingElementType, number>);
 
   // Floor plan image from localStorage
   const [floorPlanImage, setFloorPlanImage] = useState<string | null>(null);
@@ -315,28 +318,34 @@ export default function SVGDrawWithPanZoom() {
 
   // Load floor plan image from localStorage
   useEffect(() => {
-    const storedImage = localStorage.getItem("floorplan_image");
-    if (storedImage) {
-      setFloorPlanImage(storedImage);
-    } else {
-      alert(
-        "Error: Floor plan image not found in storage. Please upload a floor plan image first."
-      );
+    // Check if we're in the browser environment
+    if (typeof window !== "undefined") {
+      const storedImage = localStorage.getItem("floorplan_image");
+      if (storedImage) {
+        setFloorPlanImage(storedImage);
+      } else {
+        alert(
+          "Error: Floor plan image not found in storage. Please upload a floor plan image first."
+        );
+      }
     }
   }, []);
 
   // Update dimensions on window resize
   useEffect(() => {
-    const updateDimensions = () => {
-      setDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
+    // Check if we're in the browser environment
+    if (typeof window !== "undefined") {
+      const updateDimensions = () => {
+        setDimensions({
+          width: window.innerWidth,
+          height: window.innerHeight,
+        });
+      };
 
-    updateDimensions();
-    window.addEventListener("resize", updateDimensions);
-    return () => window.removeEventListener("resize", updateDimensions);
+      updateDimensions();
+      window.addEventListener("resize", updateDimensions);
+      return () => window.removeEventListener("resize", updateDimensions);
+    }
   }, []);
 
   // Update value when dimensions change
@@ -417,12 +426,22 @@ export default function SVGDrawWithPanZoom() {
 
   // Building Elements functions
   function initializeBuildingElements() {
+    // Initialize counters for each element type
+    const initialCounters: Record<BuildingElementType, number> = {} as Record<
+      BuildingElementType,
+      number
+    >;
+    Object.keys(BUILDING_ELEMENT_CONFIGS).forEach((type) => {
+      initialCounters[type as BuildingElementType] = 1;
+    });
+    setElementCounters(initialCounters);
+
     const elements: BuildingElement[] = Object.entries(
       BUILDING_ELEMENT_CONFIGS
     ).map(([type, config], index) => ({
-      id: `element-${type}`,
+      id: `element-${type}-1`,
       type: type as BuildingElementType,
-      name: config.name,
+      name: `${config.name} 1`,
       metricType: config.metricType,
       lines: [],
       polygons: [],
@@ -433,6 +452,52 @@ export default function SVGDrawWithPanZoom() {
     }));
     setBuildingElements(elements);
     setCurrentElementId(elements[0]?.id || null);
+  }
+
+  function createNewElementInstance(elementType: BuildingElementType) {
+    const config = BUILDING_ELEMENT_CONFIGS[elementType];
+    const currentCount = elementCounters[elementType] || 1;
+    const newInstanceNumber = currentCount + 1;
+
+    // Update counter
+    setElementCounters((prev) => ({
+      ...prev,
+      [elementType]: newInstanceNumber,
+    }));
+
+    // Find a color that's not currently used by this element type
+    const existingElements = buildingElements.filter(
+      (el) => el.type === elementType
+    );
+    const usedColorIndices = existingElements.map((el) =>
+      COLORS.findIndex((color) => color === el.color)
+    );
+    const availableColorIndex = COLORS.findIndex(
+      (_, index) => !usedColorIndices.includes(index)
+    );
+    const colorIndex =
+      availableColorIndex !== -1
+        ? availableColorIndex
+        : existingElements.length % COLORS.length;
+
+    const newElement: BuildingElement = {
+      id: `element-${elementType}-${newInstanceNumber}`,
+      type: elementType,
+      name: `${config.name} ${newInstanceNumber}`,
+      metricType: config.metricType,
+      lines: [],
+      polygons: [],
+      count: 0,
+      isExpanded: false,
+      isSaved: false,
+      color: COLORS[colorIndex],
+    };
+
+    setBuildingElements((prev) => [...prev, newElement]);
+
+    // Switch to the new element and expand it
+    setCurrentElementId(newElement.id);
+    setExpandedElementId(newElement.id);
   }
 
   function getCurrentElement(): BuildingElement | null {
@@ -508,6 +573,52 @@ export default function SVGDrawWithPanZoom() {
           : el
       )
     );
+
+    // Remove the element's lines and polygons from the current layer
+    if (currentLayerId) {
+      setLayers((prev) =>
+        prev.map((layer) =>
+          layer.id === currentLayerId
+            ? {
+                ...layer,
+                lines: layer.lines.filter(
+                  (line) => !elementLineIds.includes(line.id)
+                ),
+                polygons: layer.polygons.filter(
+                  (polygon) => !elementPolygonIds.includes(polygon.id)
+                ),
+              }
+            : layer
+        )
+      );
+    }
+  }
+
+  function deleteElement(elementId: string) {
+    const element = buildingElements.find((el) => el.id === elementId);
+    if (!element) return;
+
+    // Get the IDs of lines and polygons to remove from the current layer
+    const elementLineIds = element.lines.map((line) => line.id);
+    const elementPolygonIds = element.polygons.map((polygon) => polygon.id);
+
+    // Remove the building element
+    setBuildingElements((prev) => prev.filter((el) => el.id !== elementId));
+
+    // If this was the current element, switch to another one
+    if (currentElementId === elementId) {
+      const remainingElements = buildingElements.filter(
+        (el) => el.id !== elementId
+      );
+      setCurrentElementId(
+        remainingElements.length > 0 ? remainingElements[0].id : null
+      );
+    }
+
+    // If this was the expanded element, close it
+    if (expandedElementId === elementId) {
+      setExpandedElementId(null);
+    }
 
     // Remove the element's lines and polygons from the current layer
     if (currentLayerId) {
@@ -1010,279 +1121,371 @@ export default function SVGDrawWithPanZoom() {
               >
                 {/* Building Elements Configuration */}
                 <div className="space-y-3">
-                  {buildingElements.map((element) => {
-                    const config = BUILDING_ELEMENT_CONFIGS[element.type];
-                    const isExpanded = expandedElementId === element.id;
-                    const isCurrent = currentElementId === element.id;
+                  {/* Group elements by type for adding new instances */}
+                  {Object.entries(BUILDING_ELEMENT_CONFIGS).map(
+                    ([type, config]) => {
+                      const elementsOfType = buildingElements.filter(
+                        (el) => el.type === type
+                      );
+                      const hasElements = elementsOfType.length > 0;
 
-                    return (
-                      <div
-                        key={element.id}
-                        className={`border rounded-lg transition-all duration-200 ${
-                          isCurrent
-                            ? "border-primary bg-primary/5"
-                            : "border-border"
-                        }`}
-                      >
-                        {/* Element Header */}
-                        <div
-                          className="p-3 cursor-pointer flex items-center justify-between hover:bg-muted/50"
-                          onClick={() => {
-                            switchToElement(element.id);
-                            toggleElementExpansion(element.id);
-                          }}
-                        >
-                          <div className="flex items-center gap-3 flex-1">
-                            <div
-                              className="w-4 h-4 rounded border"
-                              style={{ backgroundColor: element.color }}
-                            />
-                            <div className="flex items-center gap-2">
-                              {config.icon}
-                              <span className="text-sm font-medium">
-                                {element.name}
+                      return (
+                        <div key={type} className="space-y-2">
+                          {/* Add new instance button */}
+                          {hasElements && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                                {config.icon}
+                                {config.name} ({elementsOfType.length})
                               </span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  createNewElementInstance(
+                                    type as BuildingElementType
+                                  )
+                                }
+                                className="h-6 px-2 text-xs"
+                              >
+                                <Plus className="w-3 h-3 mr-1" />
+                                Add
+                              </Button>
                             </div>
-                            {!element.isSaved &&
-                              element.lines.length +
-                                element.polygons.length +
-                                element.count >
-                                0 && (
-                                <div className="w-2 h-2 bg-orange-500 rounded-full" />
-                              )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {/* Display current measurements */}
-                            <div className="text-xs text-muted-foreground">
-                              {element.metricType === "count" &&
-                                element.count > 0 && (
-                                  <span>{element.count}</span>
-                                )}
-                              {element.metricType === "length" &&
-                                element.lines.length > 0 && (
-                                  <span>
-                                    {getTotalElementLength(element).toFixed(1)}m
-                                  </span>
-                                )}
-                              {element.metricType === "area" &&
-                                element.polygons.length > 0 && (
-                                  <span>
-                                    {getTotalElementArea(element).toFixed(1)}
-                                    m²
-                                  </span>
-                                )}
-                              {element.metricType === "length-area" && (
-                                <span>
-                                  {element.lines.length > 0 &&
-                                    `${getTotalElementLength(element).toFixed(
-                                      1
-                                    )}m`}
-                                  {element.lines.length > 0 &&
-                                    element.polygons.length > 0 &&
-                                    " • "}
-                                  {element.polygons.length > 0 &&
-                                    `${getTotalElementArea(element).toFixed(
-                                      1
-                                    )}m²`}
-                                </span>
-                              )}
-                            </div>
-                            {isExpanded ? (
-                              <ChevronDown className="w-4 h-4" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4" />
-                            )}
-                          </div>
-                        </div>
+                          )}
 
-                        {/* Element Content */}
-                        {isExpanded && (
-                          <div className="px-3 pb-3 border-t bg-muted/20">
-                            <div className="pt-3 space-y-3">
-                              <p className="text-xs text-muted-foreground">
-                                {config.description}
-                              </p>
+                          {/* Render all elements of this type */}
+                          {elementsOfType.map((element) => {
+                            const config =
+                              BUILDING_ELEMENT_CONFIGS[element.type];
+                            const isExpanded = expandedElementId === element.id;
+                            const isCurrent = currentElementId === element.id;
 
-                              {/* Count-based elements */}
-                              {element.metricType === "count" && (
-                                <div className="space-y-2">
-                                  <Label className="text-sm">Count</Label>
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() =>
-                                        addCountToElement(element.id, -1)
-                                      }
-                                      disabled={element.count <= 0}
-                                    >
-                                      <Minus className="w-3 h-3" />
-                                    </Button>
-                                    <Input
-                                      type="number"
-                                      value={element.count}
-                                      onChange={(e) => {
-                                        const count = Math.max(
-                                          0,
-                                          parseInt(e.target.value) || 0
-                                        );
-                                        updateCurrentElement({ count });
-                                      }}
-                                      className="text-center text-sm"
-                                      min="0"
+                            return (
+                              <div
+                                key={element.id}
+                                className={`border rounded-lg transition-all duration-200 ${
+                                  isCurrent
+                                    ? "border-primary bg-primary/5"
+                                    : "border-border"
+                                }`}
+                              >
+                                {/* Element Header */}
+                                <div
+                                  className="p-3 cursor-pointer flex items-center justify-between hover:bg-muted/50"
+                                  onClick={() => {
+                                    switchToElement(element.id);
+                                    toggleElementExpansion(element.id);
+                                  }}
+                                >
+                                  <div className="flex items-center gap-3 flex-1">
+                                    <div
+                                      className="w-4 h-4 rounded border"
+                                      style={{ backgroundColor: element.color }}
                                     />
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() =>
-                                        addCountToElement(element.id, 1)
-                                      }
-                                    >
-                                      <Plus className="w-3 h-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Length-based elements */}
-                              {(element.metricType === "length" ||
-                                element.metricType === "length-area") && (
-                                <div className="space-y-2">
-                                  <Label className="text-sm">
-                                    Length Measurements
-                                    {element.type === "external-wall" && (
-                                      <span className="text-xs text-muted-foreground ml-2">
-                                        (Auto-inferred from area)
+                                    <div className="flex items-center gap-2">
+                                      {config.icon}
+                                      <span className="text-sm font-medium">
+                                        {element.name}
                                       </span>
-                                    )}
-                                  </Label>
-                                  <div className="text-xs space-y-1">
-                                    <div className="flex justify-between">
-                                      <span>Lines drawn:</span>
-                                      <span>{element.lines.length}</span>
                                     </div>
-                                    {element.lines.length > 0 && (
-                                      <div className="flex justify-between font-medium">
-                                        <span>Total length:</span>
-                                        <span>
-                                          {getTotalElementLength(
-                                            element
-                                          ).toFixed(2)}
-                                          m
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  {/* Hide line drawing button for external walls */}
-                                  {element.type !== "external-wall" && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => {
-                                        setDrawingMode("line");
-                                        switchToElement(element.id);
-                                      }}
-                                      className="w-full"
-                                    >
-                                      <Ruler className="w-3 h-3 mr-1" />
-                                      Draw Lines
-                                    </Button>
-                                  )}
-                                </div>
-                              )}
-
-                              {/* Area-based elements */}
-                              {(element.metricType === "area" ||
-                                element.metricType === "length-area") && (
-                                <div className="space-y-2">
-                                  <Label className="text-sm">
-                                    Area Measurements
-                                    {element.metricType === "length-area" &&
-                                      element.type !== "external-wall" && (
-                                        <Button
-                                          size="sm"
-                                          onClick={() =>
-                                            inferLengthFromArea(element.id)
-                                          }
-                                          disabled={
-                                            element.polygons.length === 0
-                                          }
-                                          className="h-5 px-2 text-xs ml-auto"
-                                        >
-                                          Infer Length
-                                        </Button>
+                                    {!element.isSaved &&
+                                      element.lines.length +
+                                        element.polygons.length +
+                                        element.count >
+                                        0 && (
+                                        <div className="w-2 h-2 bg-orange-500 rounded-full" />
                                       )}
-                                  </Label>
-                                  <div className="text-xs space-y-1">
-                                    <div className="flex justify-between">
-                                      <span>Polygons drawn:</span>
-                                      <span>{element.polygons.length}</span>
-                                    </div>
-                                    {element.polygons.length > 0 && (
-                                      <div className="flex justify-between font-medium">
-                                        <span>Total area:</span>
-                                        <div className="flex items-center gap-2">
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {/* Display current measurements */}
+                                    <div className="text-xs text-muted-foreground">
+                                      {element.metricType === "count" &&
+                                        element.count > 0 && (
+                                          <span>{element.count}</span>
+                                        )}
+                                      {element.metricType === "length" &&
+                                        element.lines.length > 0 && (
+                                          <span>
+                                            {getTotalElementLength(
+                                              element
+                                            ).toFixed(1)}
+                                            m
+                                          </span>
+                                        )}
+                                      {element.metricType === "area" &&
+                                        element.polygons.length > 0 && (
                                           <span>
                                             {getTotalElementArea(
                                               element
-                                            ).toFixed(2)}
+                                            ).toFixed(1)}
                                             m²
                                           </span>
-                                        </div>
-                                      </div>
+                                        )}
+                                      {element.metricType === "length-area" && (
+                                        <span>
+                                          {element.lines.length > 0 &&
+                                            `${getTotalElementLength(
+                                              element
+                                            ).toFixed(1)}m`}
+                                          {element.lines.length > 0 &&
+                                            element.polygons.length > 0 &&
+                                            " • "}
+                                          {element.polygons.length > 0 &&
+                                            `${getTotalElementArea(
+                                              element
+                                            ).toFixed(1)}m²`}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {isExpanded ? (
+                                      <ChevronDown className="w-4 h-4" />
+                                    ) : (
+                                      <ChevronRight className="w-4 h-4" />
                                     )}
                                   </div>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setDrawingMode("polygon");
-                                      switchToElement(element.id);
-                                    }}
-                                    className="w-full"
-                                  >
-                                    <Pentagon className="w-3 h-3 mr-1" />
-                                    {element.type === "external-wall"
-                                      ? "Draw Walls (Auto-infers length)"
-                                      : "Draw Polygons"}
-                                  </Button>
                                 </div>
-                              )}
 
-                              {/* Save and Reset buttons */}
-                              <div className="flex gap-2">
-                                {/* Reset button - 30% width */}
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => resetElement(element.id)}
-                                  disabled={
-                                    element.lines.length === 0 &&
-                                    element.polygons.length === 0 &&
-                                    element.count === 0
-                                  }
-                                  className="flex-[0.3]"
-                                >
-                                  <RotateCcw className="w-3 h-3" />
-                                </Button>
+                                {/* Element Content */}
+                                {isExpanded && (
+                                  <div className="px-3 pb-3 border-t bg-muted/20">
+                                    <div className="pt-3 space-y-3">
+                                      <p className="text-xs text-muted-foreground">
+                                        {config.description}
+                                      </p>
 
-                                {/* Save button - 70% width */}
-                                <Button
-                                  size="sm"
-                                  onClick={() => saveElement(element.id)}
-                                  disabled={element.isSaved}
-                                  className="flex-[0.7]"
-                                >
-                                  <Save className="w-3 h-3 mr-1" />
-                                  {element.isSaved ? "Saved" : "Save Element"}
-                                </Button>
+                                      {/* Count-based elements */}
+                                      {element.metricType === "count" && (
+                                        <div className="space-y-2">
+                                          <Label className="text-sm">
+                                            Count
+                                          </Label>
+                                          <div className="flex items-center gap-2">
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() =>
+                                                addCountToElement(
+                                                  element.id,
+                                                  -1
+                                                )
+                                              }
+                                              disabled={element.count <= 0}
+                                            >
+                                              <Minus className="w-3 h-3" />
+                                            </Button>
+                                            <Input
+                                              type="number"
+                                              value={element.count}
+                                              onChange={(e) => {
+                                                const count = Math.max(
+                                                  0,
+                                                  parseInt(e.target.value) || 0
+                                                );
+                                                updateCurrentElement({ count });
+                                              }}
+                                              className="text-center text-sm"
+                                              min="0"
+                                            />
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() =>
+                                                addCountToElement(element.id, 1)
+                                              }
+                                            >
+                                              <Plus className="w-3 h-3" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Length-based elements */}
+                                      {(element.metricType === "length" ||
+                                        element.metricType ===
+                                          "length-area") && (
+                                        <div className="space-y-2">
+                                          <Label className="text-sm">
+                                            Length Measurements
+                                            {element.type ===
+                                              "external-wall" && (
+                                              <span className="text-xs text-muted-foreground ml-2">
+                                                (Auto-inferred from area)
+                                              </span>
+                                            )}
+                                          </Label>
+                                          <div className="text-xs space-y-1">
+                                            <div className="flex justify-between">
+                                              <span>Lines drawn:</span>
+                                              <span>
+                                                {element.lines.length}
+                                              </span>
+                                            </div>
+                                            {element.lines.length > 0 && (
+                                              <div className="flex justify-between font-medium">
+                                                <span>Total length:</span>
+                                                <span>
+                                                  {getTotalElementLength(
+                                                    element
+                                                  ).toFixed(2)}
+                                                  m
+                                                </span>
+                                              </div>
+                                            )}
+                                          </div>
+                                          {/* Hide line drawing button for external walls */}
+                                          {element.type !== "external-wall" && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => {
+                                                setDrawingMode("line");
+                                                switchToElement(element.id);
+                                              }}
+                                              className="w-full"
+                                            >
+                                              <Ruler className="w-3 h-3 mr-1" />
+                                              Draw Lines
+                                            </Button>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {/* Area-based elements */}
+                                      {(element.metricType === "area" ||
+                                        element.metricType ===
+                                          "length-area") && (
+                                        <div className="space-y-2">
+                                          <Label className="text-sm">
+                                            Area Measurements
+                                            {element.metricType ===
+                                              "length-area" &&
+                                              element.type !==
+                                                "external-wall" && (
+                                                <Button
+                                                  size="sm"
+                                                  onClick={() =>
+                                                    inferLengthFromArea(
+                                                      element.id
+                                                    )
+                                                  }
+                                                  disabled={
+                                                    element.polygons.length ===
+                                                    0
+                                                  }
+                                                  className="h-5 px-2 text-xs ml-auto"
+                                                >
+                                                  Infer Length
+                                                </Button>
+                                              )}
+                                          </Label>
+                                          <div className="text-xs space-y-1">
+                                            <div className="flex justify-between">
+                                              <span>Polygons drawn:</span>
+                                              <span>
+                                                {element.polygons.length}
+                                              </span>
+                                            </div>
+                                            {element.polygons.length > 0 && (
+                                              <div className="flex justify-between font-medium">
+                                                <span>Total area:</span>
+                                                <div className="flex items-center gap-2">
+                                                  <span>
+                                                    {getTotalElementArea(
+                                                      element
+                                                    ).toFixed(2)}
+                                                    m²
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                              setDrawingMode("polygon");
+                                              switchToElement(element.id);
+                                            }}
+                                            className="w-full"
+                                          >
+                                            <Pentagon className="w-3 h-3 mr-1" />
+                                            {element.type === "external-wall"
+                                              ? "Draw Walls (Auto-infers length)"
+                                              : "Draw Polygons"}
+                                          </Button>
+                                        </div>
+                                      )}
+
+                                      {/* Save, Reset, and Delete buttons */}
+                                      <div className="flex gap-2">
+                                        {/* Reset button */}
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() =>
+                                            resetElement(element.id)
+                                          }
+                                          disabled={
+                                            element.lines.length === 0 &&
+                                            element.polygons.length === 0 &&
+                                            element.count === 0
+                                          }
+                                          className="flex-[0.25]"
+                                        >
+                                          <RotateCcw className="w-3 h-3" />
+                                        </Button>
+
+                                        {/* Delete button - only show for instances > 1 */}
+                                        {element.name.includes(" ") &&
+                                          parseInt(
+                                            element.name.split(" ").pop() || "1"
+                                          ) > 1 && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() =>
+                                                deleteElement(element.id)
+                                              }
+                                              className="flex-[0.25] hover:bg-destructive/10 hover:text-destructive"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </Button>
+                                          )}
+
+                                        {/* Save button */}
+                                        <Button
+                                          size="sm"
+                                          onClick={() =>
+                                            saveElement(element.id)
+                                          }
+                                          disabled={element.isSaved}
+                                          className={
+                                            element.name.includes(" ") &&
+                                            parseInt(
+                                              element.name.split(" ").pop() ||
+                                                "1"
+                                            ) > 1
+                                              ? "flex-[0.5]"
+                                              : "flex-[0.75]"
+                                          }
+                                        >
+                                          <Save className="w-3 h-3 mr-1" />
+                                          {element.isSaved
+                                            ? "Saved"
+                                            : "Save Element"}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                            );
+                          })}
+                        </div>
+                      );
+                    }
+                  )}
                 </div>
 
                 <Button
@@ -1728,5 +1931,13 @@ export default function SVGDrawWithPanZoom() {
         </svg>
       </ReactSVGPanZoom>
     </div>
+  );
+}
+
+export default function SVGDrawWithPanZoom() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SVGDrawWithPanZoomInner />
+    </Suspense>
   );
 }

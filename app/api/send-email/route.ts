@@ -1,6 +1,8 @@
 "use server";
 import nodemailer from "nodemailer";
 
+import { NextRequest, NextResponse } from "next/server";
+
 const sendMail = async (email: string, application_id: string) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -195,4 +197,29 @@ const sendMail = async (email: string, application_id: string) => {
   });
 };
 
-export { sendMail };
+// POST /api/send-email - Send email
+export async function POST(request: NextRequest) {
+  try {
+    const { email, applicationId } = await request.json();
+
+    if (!email || !applicationId) {
+      return NextResponse.json(
+        { success: false, error: "Email and applicationId are required" },
+        { status: 400 }
+      );
+    }
+
+    const result = await sendMail(email, applicationId);
+
+    return NextResponse.json({
+      success: true,
+      result,
+    });
+  } catch (error) {
+    console.error("Error sending email:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to send email" },
+      { status: 500 }
+    );
+  }
+}

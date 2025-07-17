@@ -65,7 +65,7 @@ function hasRequiredRole(
 // POST /api/leads/[id]/communications - Add communication to lead
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authenticate user
@@ -158,8 +158,8 @@ export async function POST(
       callData: commData.callData,
     };
 
-    // Add communication using the model method
-    lead.addCommunication(communicationData);
+    // Add communication to the array
+    lead.communications.push(communicationData);
 
     // Save the updated lead
     await lead.save();
@@ -173,7 +173,8 @@ export async function POST(
     return NextResponse.json<LeadApiResponse>({
       success: true,
       message: "Communication added successfully",
-      lead: updatedLead?.toObject(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      lead: updatedLead?.toObject() as any,
     });
   } catch (error) {
     console.error("Error adding communication:", error);
@@ -187,7 +188,7 @@ export async function POST(
 // GET /api/leads/[id]/communications - Get communications for a lead
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authenticate user
@@ -250,7 +251,8 @@ export async function GET(
     const type = searchParams.get("type") as CommunicationType | null;
 
     // Filter communications by type if specified
-    let communications = lead.communications || [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let communications = (lead.communications || []) as any[];
     if (type && Object.values(CommunicationType).includes(type)) {
       communications = communications.filter(
         (comm: { type: CommunicationType }) => comm.type === type

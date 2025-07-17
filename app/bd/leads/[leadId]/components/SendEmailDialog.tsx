@@ -20,7 +20,6 @@ export function SendEmailDialog({
   lead,
   open,
   onOpenChange,
-  onSent,
 }: SendEmailDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

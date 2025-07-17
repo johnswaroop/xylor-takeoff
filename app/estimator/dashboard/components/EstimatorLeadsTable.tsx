@@ -117,7 +117,7 @@ function StatusUpdateDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" title="Update Status">
           <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
@@ -220,7 +220,7 @@ function AddNoteDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="sm" title="Add Note">
           <FileText className="h-4 w-4" />
         </Button>
       </DialogTrigger>
@@ -473,14 +473,15 @@ export function EstimatorLeadsTable({
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleCreatePlan(lead._id)}
-                            title="Create Plan"
+                            className="flex items-center gap-2"
                           >
                             <ClipboardList className="h-4 w-4" />
+                            Create Takeoff
                           </Button>
                           <StatusUpdateDialog
                             lead={lead}

@@ -27,6 +27,7 @@ async function getAuthenticatedUser(request: NextRequest) {
 }
 
 // Helper function to check if user has required roles
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function hasRequiredRole(user: any, allowedRoles: UserRole[]): boolean {
   if (!user || !user.roles) return false;
   return user.roles.some((role: UserRole) => allowedRoles.includes(role));
@@ -69,6 +70,7 @@ export async function GET(request: NextRequest) {
     const sortDirection = searchParams.get("sortDirection") || "desc";
 
     // Build query based on user role
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, prefer-const
     let query: any = {};
 
     // If estimator, only show assigned leads
@@ -116,6 +118,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Build sort object
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sort: any = {};
     sort[sortField] = sortDirection === "asc" ? 1 : -1;
 
@@ -135,6 +138,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json<LeadApiResponse>({
       success: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       leads: leads as any[],
       pagination: {
         page,
@@ -241,14 +245,17 @@ export async function POST(request: NextRequest) {
     const newLead = new Lead(leadData);
 
     // Add initial status change
-    newLead.addStatusChange(
-      newLead.status,
-      user._id.toString(),
-      "Lead created",
-      `Lead created ${
+    const initialStatusChange = {
+      fromStatus: undefined, // No previous status for new leads
+      toStatus: newLead.status,
+      changedBy: user._id,
+      changedAt: new Date(),
+      reason: "Lead created",
+      notes: `Lead created ${
         formData.saveAsDraft ? "as draft" : "and ready for qualifier attachment"
-      }`
-    );
+      }`,
+    };
+    newLead.statusHistory.push(initialStatusChange);
 
     const savedLead = await newLead.save();
 
@@ -286,7 +293,7 @@ export async function POST(request: NextRequest) {
 
         // Log email communication in lead
         if (emailResult?.success) {
-          savedLead.addCommunication({
+          const emailCommunication = {
             type: "EMAIL",
             direction: "OUTBOUND",
             subject:
@@ -297,9 +304,32 @@ export async function POST(request: NextRequest) {
             sentAt: formData.scheduleDateTime || new Date(),
             emailData: {
               to: [emailData.email],
-              messageId: emailResult.messageId || undefined,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              messageId: (emailResult as any).messageId || undefined,
             },
-          });
+          };
+          savedLead.communications.push(emailCommunication);
+
+          // Update lead status to SEND_QUALIFIERS when email is successfully sent
+          if (savedLead.status === LeadStatus.ATTACH_QUALIFIERS) {
+            const statusChange = {
+              fromStatus: savedLead.status,
+              toStatus: LeadStatus.SEND_QUALIFIERS,
+              changedBy: user._id,
+              changedAt: new Date(),
+              reason: formData.scheduleDateTime
+                ? "Qualification email scheduled successfully"
+                : "Qualification email sent successfully",
+              notes: `Email ${
+                formData.scheduleDateTime
+                  ? "scheduled for delivery"
+                  : "delivered"
+              } to ${emailData.email}`,
+            };
+            savedLead.statusHistory.push(statusChange);
+            savedLead.status = LeadStatus.SEND_QUALIFIERS;
+          }
+
           await savedLead.save();
         }
       } catch (emailError) {
@@ -314,6 +344,7 @@ export async function POST(request: NextRequest) {
       message: `Lead ${
         formData.saveAsDraft ? "saved as draft" : "created"
       } successfully`,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       lead: savedLead.toObject() as any,
     };
 
@@ -336,8 +367,10 @@ export async function POST(request: NextRequest) {
       "name" in error &&
       error.name === "ValidationError"
     ) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const validationError = error as any;
       const validationErrors = Object.values(validationError.errors).map(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (err: any) => err.message
       );
       return NextResponse.json<LeadApiResponse>(

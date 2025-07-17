@@ -46,7 +46,7 @@ function hasRequiredRole(
 // POST /api/leads/[id]/notes - Add note to lead
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authenticate user
@@ -105,13 +105,15 @@ export async function POST(
       );
     }
 
-    // Add note using the model method
-    lead.addNote(
-      noteData.content.trim(),
-      user._id.toString(),
-      noteData.isPrivate || false,
-      noteData.tags || []
-    );
+    // Add note to the array
+    const note = {
+      content: noteData.content.trim(),
+      createdBy: user._id,
+      createdAt: new Date(),
+      isPrivate: noteData.isPrivate || false,
+      tags: noteData.tags || [],
+    };
+    lead.notes.push(note);
 
     // Save the updated lead
     await lead.save();
@@ -125,7 +127,8 @@ export async function POST(
     return NextResponse.json<LeadApiResponse>({
       success: true,
       message: "Note added successfully",
-      lead: updatedLead?.toObject(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      lead: updatedLead?.toObject() as any,
     });
   } catch (error) {
     console.error("Error adding note:", error);
@@ -139,7 +142,7 @@ export async function POST(
 // GET /api/leads/[id]/notes - Get notes for a lead
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authenticate user
@@ -200,7 +203,8 @@ export async function GET(
     const tag = searchParams.get("tag");
 
     // Filter notes based on permissions and parameters
-    let notes = lead.notes || [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let notes = (lead.notes || []) as any[];
 
     // Filter private notes - only show private notes to the author or admin
     if (!includePrivate || !user.roles.includes(UserRole.ADMIN)) {

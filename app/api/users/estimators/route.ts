@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
       .lean();
 
     // Transform the response
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const estimatorsList = estimators.map((estimator: any) => ({
       _id: estimator._id.toString(),
       name: estimator.name,

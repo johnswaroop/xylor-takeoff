@@ -54,6 +54,79 @@ type EstimationData = {
 
 const Debug = false;
 
+// Define element grouping and order
+const getElementOrder = (type: BuildingElementType): number => {
+  const orderMap: Record<BuildingElementType, number> = {
+    // Structural Elements (1-10)
+    "external-wall": 1,
+    "upper-gable": 2,
+    "internal-bearing-wall": 3,
+    "internal-party-wall": 4,
+
+    // Cassette Systems (11-20)
+    "floor-cassette": 11,
+    "roof-cassette": 12,
+    "ceiling-cassette": 13,
+
+    // Access Elements (21-30)
+    staircases: 21,
+    "windows-external-doors": 22,
+    "internal-doors": 23,
+
+    // Custom Elements (31+)
+    "custom-element": 31,
+  };
+
+  return orderMap[type] || 999;
+};
+
+const getElementGroupName = (type: BuildingElementType): string => {
+  if (
+    [
+      "external-wall",
+      "upper-gable",
+      "internal-bearing-wall",
+      "internal-party-wall",
+    ].includes(type)
+  ) {
+    return "Structural Elements";
+  }
+  if (["floor-cassette", "roof-cassette", "ceiling-cassette"].includes(type)) {
+    return "Cassette Systems";
+  }
+  if (
+    ["staircases", "windows-external-doors", "internal-doors"].includes(type)
+  ) {
+    return "Access Elements";
+  }
+  return "Custom Elements";
+};
+
+// Sort elements by group and type
+const getSortedElements = (
+  elements: EstimationElement[]
+): EstimationElement[] => {
+  return [...elements].sort(
+    (a, b) => getElementOrder(a.type) - getElementOrder(b.type)
+  );
+};
+
+// Group elements for display
+const getGroupedElements = (elements: EstimationElement[]) => {
+  const sorted = getSortedElements(elements);
+  const groups: { [key: string]: EstimationElement[] } = {};
+
+  sorted.forEach((element) => {
+    const groupName = getElementGroupName(element.type);
+    if (!groups[groupName]) {
+      groups[groupName] = [];
+    }
+    groups[groupName].push(element);
+  });
+
+  return groups;
+};
+
 function EstimateContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -230,19 +303,19 @@ function EstimateContent() {
             color: #000000;
             line-height: 1.5;
         }
-        
+
         /* Print styles */
         @media print {
             body { margin: 0; padding: 10px; }
             .no-print { display: none !important; }
             page-break-inside: avoid;
         }
-        
+
         /* Ensure all content is visible */
         * {
             box-sizing: border-box;
         }
-        
+
         /* Override any complex colors for better compatibility */
         [style*="oklch"] {
             background-color: #ffffff !important;
@@ -884,60 +957,94 @@ function EstimateContent() {
           </div>
           <div style={styles.cardContent}>
             <div style={styles.elementsContainer}>
-              {elements.map((element) => {
-                const elementTotal = calculateElementTotal(element);
-                return (
-                  <div key={element.id} style={styles.elementCard}>
-                    <div style={styles.elementHeader}>
-                      <div style={styles.elementInfo}>
-                        <div
-                          style={{
-                            ...styles.colorIndicator,
-                            backgroundColor: element.color,
-                          }}
-                        />
-                        <div>
-                          <h3 style={styles.elementName}>{element.name}</h3>
-                          <p style={styles.elementQuantity}>
-                            {getQuantityDisplay(element)}
-                          </p>
-                        </div>
-                      </div>
-                      <div style={styles.elementTotal}>
-                        <div style={styles.elementTotalAmount}>
-                          ${elementTotal.toFixed(2)}
-                        </div>
-                        <div style={styles.elementTotalLabel}>Total</div>
-                      </div>
-                    </div>
-
-                    <div style={styles.priceInputContainer}>
-                      <label
-                        htmlFor={`price-${element.id}`}
-                        style={styles.priceLabel}
+              {(() => {
+                const groupedElements = getGroupedElements(elements);
+                return Object.entries(groupedElements).map(
+                  ([groupName, groupElements]) => (
+                    <div key={groupName}>
+                      {/* Group Header */}
+                      <div
+                        style={{
+                          fontSize: "1.125rem",
+                          fontWeight: "600",
+                          color: "#1f2937",
+                          marginBottom: "0.75rem",
+                          marginTop:
+                            groupName !== Object.keys(groupedElements)[0]
+                              ? "1.5rem"
+                              : "0",
+                          paddingBottom: "0.5rem",
+                          borderBottom: "2px solid #e5e7eb",
+                        }}
                       >
-                        Price {getUnitLabel(element.metricType, element)}:
-                      </label>
-                      <div style={styles.priceInputGroup}>
-                        <span style={styles.dollarSign}>$</span>
-                        <input
-                          id={`price-${element.id}`}
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={element.price}
-                          onChange={(e) => {
-                            const newPrice = parseFloat(e.target.value) || 0;
-                            updateElementPrice(element.id, newPrice);
-                          }}
-                          placeholder="0.00"
-                          style={styles.priceInput}
-                        />
+                        {groupName}
                       </div>
+
+                      {/* Group Elements */}
+                      {groupElements.map((element) => {
+                        const elementTotal = calculateElementTotal(element);
+                        return (
+                          <div key={element.id} style={styles.elementCard}>
+                            <div style={styles.elementHeader}>
+                              <div style={styles.elementInfo}>
+                                <div
+                                  style={{
+                                    ...styles.colorIndicator,
+                                    backgroundColor: element.color,
+                                  }}
+                                />
+                                <div>
+                                  <h3 style={styles.elementName}>
+                                    {element.name}
+                                  </h3>
+                                  <p style={styles.elementQuantity}>
+                                    {getQuantityDisplay(element)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div style={styles.elementTotal}>
+                                <div style={styles.elementTotalAmount}>
+                                  ${elementTotal.toFixed(2)}
+                                </div>
+                                <div style={styles.elementTotalLabel}>
+                                  Total
+                                </div>
+                              </div>
+                            </div>
+
+                            <div style={styles.priceInputContainer}>
+                              <label
+                                htmlFor={`price-${element.id}`}
+                                style={styles.priceLabel}
+                              >
+                                Price{" "}
+                                {getUnitLabel(element.metricType, element)}:
+                              </label>
+                              <div style={styles.priceInputGroup}>
+                                <span style={styles.dollarSign}>$</span>
+                                <input
+                                  id={`price-${element.id}`}
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={element.price}
+                                  onChange={(e) => {
+                                    const newPrice =
+                                      parseFloat(e.target.value) || 0;
+                                    updateElementPrice(element.id, newPrice);
+                                  }}
+                                  placeholder="0.00"
+                                  style={styles.priceInput}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
+                  )
                 );
-              })}
+              })()}
             </div>
           </div>
         </div>
@@ -984,21 +1091,26 @@ function EstimateContent() {
               <div style={styles.breakdownContainer}>
                 <h4 style={styles.breakdownTitle}>Breakdown by Element:</h4>
                 <div style={styles.breakdownList}>
-                  {elements
-                    .filter((el) => el.price > 0)
-                    .map((element) => (
+                  {(() => {
+                    const sortedElements = getSortedElements(elements).filter(
+                      (el) => el.price > 0
+                    );
+                    if (sortedElements.length === 0) {
+                      return (
+                        <div style={styles.noElementsText}>
+                          No elements priced yet
+                        </div>
+                      );
+                    }
+                    return sortedElements.map((element) => (
                       <div key={element.id} style={styles.breakdownItem}>
                         <span>{element.name}:</span>
                         <span>
                           ${calculateElementTotal(element).toFixed(2)}
                         </span>
                       </div>
-                    ))}
-                  {elements.filter((el) => el.price > 0).length === 0 && (
-                    <div style={styles.noElementsText}>
-                      No elements priced yet
-                    </div>
-                  )}
+                    ));
+                  })()}
                 </div>
               </div>
             </div>

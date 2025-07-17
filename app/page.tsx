@@ -50,7 +50,7 @@ export default function Home() {
         </p>
 
         {/* CTA Button */}
-        <Link href="/upload">
+        <Link href="/auth">
           <button className="bg-blue-900 cursor-pointer hover:bg-blue-800 text-white font-semibold text-lg md:text-xl px-12 py-4 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 ease-in-out relative">
             TEST XYLOR AI
           </button>

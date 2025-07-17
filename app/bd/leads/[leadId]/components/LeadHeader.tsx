@@ -232,15 +232,6 @@ export function LeadHeader({ lead, onStatusChange, onEdit }: LeadHeaderProps) {
                 </div>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setStatusDialogOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <Edit className="h-4 w-4" />
-              Change Status
-            </Button>
           </div>
         </div>
 
@@ -337,14 +328,34 @@ export function LeadHeader({ lead, onStatusChange, onEdit }: LeadHeaderProps) {
                     <SelectValue placeholder="Change Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    {allowedStatuses.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4" />
-                          {LEAD_STATUS_LABELS[status] || status}
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {allowedStatuses.map((status) => {
+                      // Check if this is "SENT_FOR_ESTIMATES" and no estimator assigned
+                      const isEstimationStatus =
+                        status === LeadStatus.SENT_FOR_ESTIMATES;
+                      const hasEstimator = !!lead.assignedEstimator;
+                      const isDisabled = isEstimationStatus && !hasEstimator;
+
+                      return (
+                        <SelectItem
+                          key={status}
+                          value={status}
+                          disabled={isDisabled}
+                          className={
+                            isDisabled ? "opacity-50 cursor-not-allowed" : ""
+                          }
+                        >
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4" />
+                            <span>{LEAD_STATUS_LABELS[status] || status}</span>
+                            {isDisabled && (
+                              <span className="text-xs text-muted-foreground ml-2">
+                                (Requires estimator)
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               )}
