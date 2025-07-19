@@ -89,7 +89,7 @@ const parseEmailMessage = async (
       // Extract to email addresses
       const toAddresses: string[] = [];
       if (parsed.to && typeof parsed.to === "object" && "value" in parsed.to) {
-        parsed.to.value.forEach((addr: any) => {
+        parsed.to.value.forEach((addr) => {
           if (addr.address) toAddresses.push(addr.address);
         });
       }
@@ -232,6 +232,7 @@ const searchEmailsInFolder = async (
           });
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         fetch.once("error", (err: any) => {
           reject(err);
         });

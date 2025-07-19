@@ -202,7 +202,8 @@ ${
 ${leadContext.notes
   .slice(-3)
   .map(
-    (note: { content?: string } | string, index: number) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (note: any, index: number) =>
       `${index + 1}. ${typeof note === "object" ? note.content : note}`
   )
   .join("\n")}`
@@ -423,7 +424,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { message, leadId, leadContext } = body;
+    const { message, leadContext } = body;
 
     // Validate message
     if (

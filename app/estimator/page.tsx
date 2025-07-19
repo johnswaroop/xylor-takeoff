@@ -11,6 +11,7 @@ import {
   Download,
   FileDown,
 } from "lucide-react";
+import { toast } from "sonner";
 // Removed PDF dependencies - using HTML export instead
 
 type BuildingElementType =
@@ -415,7 +416,20 @@ function EstimateContent() {
     const saved = await saveToDatabase(estimateData, htmlContent || undefined);
 
     if (saved) {
-      alert("Estimate saved to database successfully!");
+      toast.success("Estimate saved successfully!", {
+        description: "Redirecting to estimator dashboard...",
+      });
+
+      // Redirect to estimator dashboard after successful save
+      setTimeout(() => {
+        router.push("/estimator/dashboard");
+      }, 1500);
+    } else {
+      toast.error("Failed to save estimate", {
+        description: "Please try again or contact support.",
+      });
+      setIsExporting(false);
+      return;
     }
 
     // Download JSON

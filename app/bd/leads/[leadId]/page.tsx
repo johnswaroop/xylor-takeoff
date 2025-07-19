@@ -21,6 +21,7 @@ import { QualifierResponseViewer } from "./components/QualifierResponseViewer";
 import { AssignEstimatorDialog } from "./components/AssignEstimatorDialog";
 import { EmailConversationTab } from "./components/EmailConversationTab";
 import { AIAssistantTab } from "./components/AIAssistantTab";
+import { SendEstimateDialog } from "./components/SendEstimateDialog";
 
 export default function LeadDetailsPage() {
   const params = useParams();
@@ -36,6 +37,7 @@ export default function LeadDetailsPage() {
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [qualifierViewerOpen, setQualifierViewerOpen] = useState(false);
   const [assignEstimatorOpen, setAssignEstimatorOpen] = useState(false);
+  const [sendEstimateOpen, setSendEstimateOpen] = useState(false);
 
   // Redirect if not authenticated
   if (!isAuthenticated) {
@@ -206,6 +208,18 @@ export default function LeadDetailsPage() {
                   <Mail className="h-4 w-4" />
                   Send Email
                 </Button>
+
+                {/* Send Estimate Button - Only show if estimation data exists */}
+                {lead.estimationData && (
+                  <Button
+                    onClick={() => setSendEstimateOpen(true)}
+                    className="w-full justify-start bg-green-600 hover:bg-green-700 text-white font-semibold"
+                    size="lg"
+                  >
+                    <Mail className="h-5 w-5" />
+                    📊 Send Estimate to Client
+                  </Button>
+                )}
                 <Button
                   onClick={() => setNoteDialogOpen(true)}
                   className="w-full justify-start"
@@ -309,6 +323,16 @@ export default function LeadDetailsPage() {
         onOpenChange={setAssignEstimatorOpen}
         onAssigned={() => {
           setAssignEstimatorOpen(false);
+          refetch();
+        }}
+      />
+
+      <SendEstimateDialog
+        lead={lead}
+        open={sendEstimateOpen}
+        onOpenChange={setSendEstimateOpen}
+        onSent={() => {
+          setSendEstimateOpen(false);
           refetch();
         }}
       />
