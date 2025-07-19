@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Wall Detection App",
-  description: "Floor plan analysis and wall detection tool",
+  title: "Xylor Estimator",
+  description: "Xylor Estimator",
 };
 
 export default function RootLayout({
