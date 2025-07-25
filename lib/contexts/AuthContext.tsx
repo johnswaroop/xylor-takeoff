@@ -72,9 +72,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (roles.includes(UserRole.ESTIMATOR)) {
       return "/estimator/dashboard";
     }
-    // If user has Admin role, go to Admin dashboard
+    // If user has Admin role, go to BD dashboard
     if (roles.includes(UserRole.ADMIN)) {
-      return "/admin/dashboard";
+      return "/bd/dashboard";
     }
     // Default fallback
     return "/dashboard";
