@@ -11,6 +11,18 @@ export async function GET(
     await connectToDatabase();
 
     const { id } = await params;
+
+    // Validate ObjectId format before querying database
+    if (!id || id === "[leadId]" || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      return NextResponse.json(
+        {
+          error: "Invalid lead ID. Please use a valid qualification form link.",
+          code: "INVALID_LEAD_ID",
+        },
+        { status: 400 }
+      );
+    }
+
     const lead = await Lead.findById(id).select(
       "companyName contactPerson email projectType status"
     );
@@ -72,6 +84,18 @@ export async function POST(
     }
 
     const { id } = await params;
+
+    // Validate ObjectId format before querying database
+    if (!id || id === "[leadId]" || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      return NextResponse.json(
+        {
+          error: "Invalid lead ID. Please use a valid qualification form link.",
+          code: "INVALID_LEAD_ID",
+        },
+        { status: 400 }
+      );
+    }
+
     const lead = await Lead.findById(id);
 
     if (!lead) {

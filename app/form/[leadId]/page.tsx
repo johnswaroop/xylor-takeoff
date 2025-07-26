@@ -45,11 +45,23 @@ export default function QualifierFormPage() {
   const fetchLeadInfo = async () => {
     try {
       const response = await fetch(`/api/leads/${leadId}/qualifier`);
-      if (!response.ok) throw new Error("Failed to fetch lead information");
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.code === "INVALID_LEAD_ID") {
+          throw new Error(
+            "This qualification form link is invalid. Please request a new link from our team."
+          );
+        }
+        throw new Error(errorData.error || "Failed to fetch lead information");
+      }
       const data = await response.json();
       setLeadInfo(data.lead);
-    } catch {
-      setError("Failed to load form. Please check your link and try again.");
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to load form. Please check your link and try again."
+      );
     }
   };
 
@@ -146,7 +158,14 @@ export default function QualifierFormPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to submit form");
+        if (errorData.code === "INVALID_LEAD_ID") {
+          throw new Error(
+            "This qualification form link is invalid. Please request a new link from our team."
+          );
+        }
+        throw new Error(
+          errorData.error || errorData.message || "Failed to submit form"
+        );
       }
 
       setSubmitted(true);

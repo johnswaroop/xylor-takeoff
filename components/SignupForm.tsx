@@ -43,10 +43,6 @@ export default function SignupForm() {
 
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
-    } else if (
-      !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(formData.email)
-    ) {
-      newErrors.email = "Please enter a valid email";
     }
 
     if (!formData.password) {
@@ -172,6 +168,7 @@ export default function SignupForm() {
                 <Input
                   id="email"
                   type="email"
+                  required
                   placeholder="Enter your email"
                   value={formData.email}
                   onChange={(e) =>
