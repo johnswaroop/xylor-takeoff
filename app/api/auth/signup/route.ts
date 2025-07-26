@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    console.log("Signup error:", error);
     console.error("Signup error:", error);
 
     // Handle mongoose validation errors
